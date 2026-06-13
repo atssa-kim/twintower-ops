@@ -7,5 +7,8 @@ window.FIREBASE_CONFIG = {
   projectId: "disaster-response-system-f669b",
   storageBucket: "disaster-response-system-f669b.firebasestorage.app",
   messagingSenderId: "116181765484",
-  appId: "1:116181765484:web:d4ec2e24d409da0ef93749"
+  appId: "1:116181765484:web:d4ec2e24d409da0ef93749",
+  // ── 푸시(FCM)용 웹 푸시 인증서 키 ──
+  // 콘솔 → 프로젝트 설정 → Cloud Messaging → '웹 푸시 인증서' → 키 쌍 생성 → 여기 붙여넣기
+  vapidKey: ""
 };

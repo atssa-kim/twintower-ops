@@ -112,6 +112,11 @@ async function makeFirebaseBackend(cfg){
   catch(e){ alert('Firebase 인증 실패: ' + e.message + '\n(콘솔 → Authentication → 익명 로그인 활성화)'); }
   const db = cfg.databaseId ? fs.getFirestore(app, cfg.databaseId) : fs.getFirestore(app);
   window.__fs = fs; window.__db = db;   // 디버그용
+  // FCM(푸시) 모듈 — 실패해도 앱은 정상 동작
+  try {
+    const msg = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
+    window.__fcm = { messaging: msg.getMessaging(app), getToken: msg.getToken, onMessage: msg.onMessage, fs, db };
+  } catch(e){ console.warn('FCM 모듈 로드 실패(푸시 비활성):', e.message); }
   const incRef  = fs.doc(db, 'incidents', 'active');
   const respCol = fs.collection(db, 'incidents', 'active', 'responders');
   const taskCol = fs.collection(db, 'incidents', 'active', 'tasks');
@@ -147,6 +152,30 @@ function login(empNo, name){
   state.user = { empNo:r.empNo, name:r.name, team:r.team, role:r.role };
   state.view = (r.role === '지휘자' || r.role === '부지휘') ? 'cmd' : 'responder';
   sessionSave(); render();
+  if (BK && BK.mode === 'firebase') registerPush();
+}
+
+// FCM 푸시 등록 — 알림 권한 + 토큰을 fcmTokens/{token}에 저장(조별 발송용)
+async function registerPush(){
+  try {
+    const F = window.__fcm;
+    if (!F || !F.messaging) return;
+    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+    const cfg = window.FIREBASE_CONFIG;
+    if (!cfg.vapidKey){ console.warn('vapidKey 없음 → 푸시 비활성(콘솔에서 웹푸시 인증서 생성 필요)'); return; }
+    const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted'){ console.warn('알림 권한 거부됨'); return; }
+    const token = await F.getToken(F.messaging, { vapidKey: cfg.vapidKey, serviceWorkerRegistration: reg });
+    if (!token || !state.user) return;
+    await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
+      { empNo:state.user.empNo, name:state.user.name, team:state.user.team, updatedAt:Date.now() });
+    F.onMessage(F.messaging, (payload) => {
+      const n = payload.notification || {};
+      try { new Notification(n.title || '발령', { body: n.body || '' }); } catch(e){}
+    });
+    console.log('FCM 토큰 등록 완료:', token.slice(0,12) + '...');
+  } catch(e){ console.warn('registerPush 실패:', e.message); }
 }
 function logout(){ state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
