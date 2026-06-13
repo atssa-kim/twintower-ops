@@ -28,7 +28,7 @@ service cloud.firestore {
       allow create, update: if signedIn()
         && request.resource.data.status in ['active','closed']
         && request.resource.data.type is string
-        && request.resource.data.mode in ['훈련','감지기','실제'];
+        && request.resource.data.mode in ['훈련','감지기','실제','소량','대량'];
       allow delete: if false;
 
       // 출동 체크: 상태값 검증

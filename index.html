@@ -63,19 +63,46 @@ const ROSTER = [
   { empNo:'B-4002', name:'상황B', team:'상황실', role:'상황실' },
   { empNo:'B-5001', name:'최지원', team:'지원반', role:'지원조' },
 ];
-const FIRE_TASKS = {
-  '지휘반': ['상황 판단·지휘','유관기관 신고 지시','증대 발령 판단'],
-  '대응반': ['현장 출동·상태 보고','초기 소화·관계자 대피','대피유도 지시·출입통제','정상화 확인 보고'],
-  '유도반': ['층별 대피 방송','피난계단 유도','인원 점검'],
-  '상황실': ['수신기 확인·발신기','비상방송 송출','관계기관 통보'],
-  '지원반': ['응급조치·이송 지원','진입로 확보'],
+const ALL_TEAMS = ['지휘반','대응반','유도반','상황실','지원반'];
+
+// 재난별 정의 (임무·비상장구는 트윈타워 재난대응 매뉴얼 참조)
+const DISASTERS = {
+  fire: {
+    label:'🔥 화재', icon:'🔥', color:'#A32D2D',
+    equip:['방독면','무전기','안전모','랜턴','손전등'],
+    modes:{
+      '훈련':  { color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+      '감지기':{ color:'#BA7517', scope:'confirm', teams:['대응반'], desc:'확인조만 출동 (오작동 대비)', emoji:'🔔' },
+      '실제':  { color:'#A32D2D', scope:'all',     teams:ALL_TEAMS,  desc:'전 조직 즉시 출동', emoji:'⚠️' },
+    },
+    tasks:{
+      '지휘반':['상황 판단·지휘','유관기관 신고 지시','증대 발령 판단'],
+      '대응반':['현장 출동·상태 보고','초기 소화·관계자 대피','대피유도 지시·출입통제','정상화 확인 보고'],
+      '유도반':['층별 대피 방송','피난계단 유도','인원 점검'],
+      '상황실':['수신기 확인·발신기','비상방송 송출','관계기관 통보'],
+      '지원반':['응급조치·이송 지원','진입로 확보'],
+    }
+  },
+  leak: {
+    label:'💧 누수·침수', icon:'💧', color:'#1d4ed8',
+    equip:['무전기','랜턴','마스터키','사다리','보양비닐','수중펌프','흡수기','밀대','들것·AED'],
+    modes:{
+      '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+      '소량':{ color:'#BA7517', scope:'confirm', teams:['대응반'], desc:'소량 누수 — 대응반 우선 출동', emoji:'💧' },
+      '대량':{ color:'#A32D2D', scope:'all',     teams:ALL_TEAMS,  desc:'대량 침수 — 전 조직 즉시 출동', emoji:'🌊' },
+    },
+    tasks:{
+      '지휘반':['음어 판단(기술하나=물적·누수 / 기술둘=인적피해 포함)','동원 인력 투입·피해복구 결정','인명피해 시 119·병원 연락','종합상황실 신고·현황 보고'],
+      '대응반':['누수 현장 즉시 출동·범위 파악','비닐 보양·밸브 차단(2차 피해 방지)','현장 전원 차단·전기설비 피해 파악','잔수 제거·흡진·펌핑·침수 차단','설비 정상동작 확인·복구 보고'],
+      '유도반':['사고현장 출동·안전펜스 설치','출입 인원·차량 진입 통제','현장 최단 동선 안내','안전테이프·라바콘 설치','119 구급대 동선 안내'],
+      '상황실':['상황 전파·안내방송 준비','비상 안내방송 송출(ERT)','장비 가동상태·환자발생 통보','종합상황실 보고','상황 종료 방송·최종 보고'],
+      '지원반':['외부기관·주변센터 연락','비상장비 현장 전달','응급조치 판단·상황실 전달','119 구급대 환자 인계·상태 확인','의료지원(들것·AED)'],
+    }
+  }
 };
-const FIRE_EQUIP = ['방독면','무전기','안전모','랜턴','손전등'];
-const MODES = {
-  '훈련':   { color:'#185FA5', scope:'drill',   teams:Object.keys(TEAM_COLOR), desc:'연습 출동 (기록 별도 보관)' },
-  '감지기': { color:'#BA7517', scope:'confirm', teams:['대응반'],              desc:'확인조만 출동 (오작동 대비)' },
-  '실제':   { color:'#A32D2D', scope:'all',     teams:Object.keys(TEAM_COLOR), desc:'전 조직 즉시 출동' },
-};
+// 현재 상황의 재난 정의 / 임무맵
+function dInfo(){ return DISASTERS[(state.incident && state.incident.disaster) || 'fire']; }
+function dTasks(){ return dInfo().tasks; }
 const STATUS_COLOR = { '미응답':'#94a3b8','출동중':'#BA7517','현장':'#185FA5','복귀':'#0F6E56' };
 
 // ──────────── 상태 (view model) ────────────
@@ -200,21 +227,25 @@ function unlockAudio(){ try { const AC = window.AudioContext || window.webkitAud
 function playSiren(){
   try {
     unlockAudio(); if(!_audioCtx) return;
-    const ctx = _audioCtx, now = ctx.currentTime;
-    for (let i=0;i<4;i++){
-      const t = now + i*0.6;
-      const osc = ctx.createOscillator(), g = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(660, t);
-      osc.frequency.linearRampToValueAtTime(1040, t+0.3);
-      osc.frequency.linearRampToValueAtTime(660, t+0.6);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.35, t+0.05);
-      g.gain.exponentialRampToValueAtTime(0.0001, t+0.58);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(t); osc.stop(t+0.6);
+    const ctx = _audioCtx, now = ctx.currentTime, dur = 3.6, period = 0.9, lo = 520, hi = 1180;
+    const osc = ctx.createOscillator(), osc2 = ctx.createOscillator(), g = ctx.createGain();
+    osc.type = 'sawtooth'; osc2.type = 'square'; osc2.detune.value = -1200;   // 한 옥타브 아래 보강
+    osc.frequency.setValueAtTime(lo, now); osc2.frequency.setValueAtTime(lo, now);
+    let t = now;                                   // 사이렌 웨일: lo↔hi 매끄럽게 왕복
+    while (t < now + dur){
+      osc.frequency.linearRampToValueAtTime(hi, t + period/2);
+      osc.frequency.linearRampToValueAtTime(lo, t + period);
+      osc2.frequency.linearRampToValueAtTime(hi, t + period/2);
+      osc2.frequency.linearRampToValueAtTime(lo, t + period);
+      t += period;
     }
-    if (navigator.vibrate) navigator.vibrate([300,150,300,150,500]);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.4, now + 0.06);
+    g.gain.setValueAtTime(0.4, now + dur - 0.15);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(g); osc2.connect(g); g.connect(ctx.destination);
+    osc.start(now); osc2.start(now); osc.stop(now + dur); osc2.stop(now + dur);
+    if (navigator.vibrate) navigator.vibrate([400,200,400,200,400,200,600]);
   } catch(e){ console.warn('playSiren', e); }
 }
 function maybeAlarm(){
@@ -232,33 +263,38 @@ function toggleMute(){ state.muted = !state.muted; sessionSave(); render(); if(!
 function logout(){ state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
 
-function declareIncident(mode, location){
+function declareIncident(disaster, mode, location){
   if (!location.trim()) return alert('위치를 입력하세요.');
-  const m = MODES[mode];
-  const inc = { type:'화재', mode, location:location.trim(), status:'active',
+  const D = DISASTERS[disaster]; const m = D.modes[mode];
+  const inc = { disaster, type:D.label, mode, location:location.trim(), status:'active',
     scope:m.scope, targetTeams:[...m.teams], declaredBy:state.user.empNo, declaredAt:Date.now(), escalations:[] };
-  logEvent('declare', `화재 발령 [${mode}] · ${location.trim()}`);
+  logEvent('declare', `${D.label} 발령 [${mode}] · ${location.trim()}`);
   BK.setIncident(inc);
 }
+function escalateMode(){ const D=DISASTERS[state.incident.disaster]; return Object.keys(D.modes).find(k=>D.modes[k].scope==='all'); }
 function escalate(){
-  if (!state.incident || state.incident.mode === '실제') return;
+  if (!state.incident) return;
+  const to = escalateMode();
+  if (!to || state.incident.mode === to) return;
+  const D = DISASTERS[state.incident.disaster];
   const from = state.incident.mode;
-  const escalations = (state.incident.escalations||[]).concat([{ from, to:'실제', by:state.user.empNo, at:Date.now() }]);
-  logEvent('escalate', `${from} → 실제 승격 (전원 재출동)`);
-  BK.patchIncident({ mode:'실제', scope:'all', targetTeams:[...MODES['실제'].teams], escalations });
+  const escalations = (state.incident.escalations||[]).concat([{ from, to, by:state.user.empNo, at:Date.now() }]);
+  logEvent('escalate', `${from} → ${to} 승격 (전원 재출동)`);
+  BK.patchIncident({ mode:to, scope:'all', targetTeams:[...D.modes[to].teams], escalations });
 }
 function closeIncident(){ if (!confirm('상황을 종료할까요?')) return; logEvent('close','상황 종료'); BK.clearIncident(); }
 function setMyStatus(s){ if (!state.incident) return; logEvent('status', `출동상태 → ${s}`); BK.setResponder(state.user.empNo, { empNo:state.user.empNo, name:state.user.name, team:state.user.team, role:state.user.role, status:s, updatedAt:Date.now() }); }
 function toggleTask(team, i){
   const id = team + '-' + i;
-  if (state.tasks[id] && state.tasks[id].done){ logEvent('task','취소: '+FIRE_TASKS[team][i]); BK.delTask(id); }
-  else { logEvent('task','완료: '+FIRE_TASKS[team][i]); BK.setTask(id, { team, idx:i, label:FIRE_TASKS[team][i], done:true, by:state.user.empNo, byName:state.user.name, at:Date.now() }); }
+  const lbl = (dTasks()[team]||[])[i] || '';
+  if (state.tasks[id] && state.tasks[id].done){ logEvent('task','취소: '+lbl); BK.delTask(id); }
+  else { logEvent('task','완료: '+lbl); BK.setTask(id, { team, idx:i, label:lbl, done:true, by:state.user.empNo, byName:state.user.name, at:Date.now() }); }
 }
 
 // ════════════════ 집계 ════════════════
 function targetRoster(){ if (!state.incident) return []; return ROSTER.filter(r => state.incident.targetTeams.includes(r.team)); }
 function myStatus(){ const r = state.responders[state.user.empNo]; return r ? r.status : '미응답'; }
-function teamTaskPct(team){ const total=(FIRE_TASKS[team]||[]).length; if(!total) return 0; let done=0; for(let i=0;i<total;i++) if(state.tasks[team+'-'+i]) done++; return Math.round(done/total*100); }
+function teamTaskPct(team){ const total=(dTasks()[team]||[]).length; if(!total) return 0; let done=0; for(let i=0;i<total;i++) if(state.tasks[team+'-'+i]) done++; return Math.round(done/total*100); }
 
 // ════════════════ 렌더 ════════════════
 const el = document.getElementById('app');
@@ -314,19 +350,19 @@ function renderResponder(){
     body = `<div class="card" style="text-align:center;padding:30px 14px;"><div style="font-size:34px;">🟢</div>
       <div style="font-weight:800;margin:8px 0 4px;">현재 발령 없음</div><div class="muted">발령 시 이 화면에 상황이 표시됩니다.</div></div>`;
   } else {
-    const m = MODES[inc.mode]; const st = myStatus();
+    const D = DISASTERS[inc.disaster]; const m = D.modes[inc.mode]; const st = myStatus();
     const stBtn = ['미응답','출동중','현장','복귀'].map(s => `<button onclick="setMyStatus('${s}')" style="${st===s?`background:${STATUS_COLOR[s]};color:#fff;`:''}">${s}</button>`).join('');
-    const tasks = (FIRE_TASKS[state.user.team]||[]).map((t,i) => { const ok=!!state.tasks[state.user.team+'-'+i];
+    const tasks = (D.tasks[state.user.team]||[]).map((t,i) => { const ok=!!state.tasks[state.user.team+'-'+i];
       return `<div class="task" onclick="toggleTask('${state.user.team}',${i})"><div class="check" style="${ok?`background:${TEAM_COLOR[state.user.team]};border-color:${TEAM_COLOR[state.user.team]};`:''}">${ok?'✓':''}</div><span style="${ok?'color:#94a3b8;text-decoration:line-through;':''}">${esc(t)}</span></div>`; }).join('');
     const inScope = inc.targetTeams.includes(state.user.team);
     body = `
-    <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">🔥</div>
-      <div style="flex:1;"><div style="font-weight:800;">화재 발령 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
+    <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">${D.icon}</div>
+      <div style="flex:1;"><div style="font-weight:800;">${esc(D.label)} 발령 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
       <div style="font-size:12px;opacity:.9;margin-top:2px;">${esc(inc.location)} · ${time(inc.declaredAt)}</div></div></div>
       <div style="font-size:12px;margin-top:8px;opacity:.95;">${m.desc}</div></div>
     ${inScope ? `
     <div class="card"><label>내 출동 체크</label><div class="seg">${stBtn}</div></div>
-    <div class="card"><label style="color:${m.color};">🧰 화재 비상장구 착용</label><div>${FIRE_EQUIP.map(e=>`<span class="chip" style="background:#fdecec;color:#791f1f;margin:3px 4px 0 0;">${e}</span>`).join('')}</div></div>
+    <div class="card"><label style="color:${m.color};">🧰 ${esc(D.label)} 비상장구 착용</label><div>${D.equip.map(e=>`<span class="chip" style="background:${m.color}1a;color:${m.color};margin:3px 4px 0 0;">${e}</span>`).join('')}</div></div>
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><h3 style="margin:0;">내 임무 · ${esc(state.user.team)}</h3><span class="chip" style="background:#f0fdf4;color:#15803d;">${teamTaskPct(state.user.team)}%</span></div>${tasks}</div>`
     : `<div class="card" style="text-align:center;color:#64748b;">이번 ${inc.mode} 상황은 <b>${inc.targetTeams.join('·')}</b> 대상입니다. 대기해 주세요.</div>`}`;
   }
@@ -335,40 +371,49 @@ function renderResponder(){
 function renderCommand(){
   const inc = state.incident; let body;
   if (!inc){
-    const modeBtns = Object.keys(MODES).map(k => { const m=MODES[k];
-      return `<div class="mode-opt" data-mode="${k}" onclick="selMode('${k}')" style="${k==='실제'?`border-color:${m.color};background:#fdecec;color:#791f1f;`:''}">
-        <span>${k==='훈련'?'🎓':k==='감지기'?'🔔':'⚠️'}</span><span>${k==='감지기'?'감지기 동작':k==='실제'?'실제 화재':'훈련'}</span>
+    if (!window._selDisaster) window._selDisaster = 'fire';
+    const D = DISASTERS[window._selDisaster];
+    if (!window._selMode || !D.modes[window._selMode]) window._selMode = Object.keys(D.modes).find(x=>D.modes[x].scope==='all');
+    const disBtns = Object.keys(DISASTERS).map(k => { const DD=DISASTERS[k]; const on=window._selDisaster===k;
+      return `<button onclick="selDisaster('${k}')" style="flex:1;border:2px solid ${on?DD.color:'#e2e8f0'};
+        background:${on?DD.color:'#fff'};color:${on?'#fff':'#64748b'};border-radius:10px;padding:11px 4px;
+        font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;">${DD.label}</button>`; }).join('');
+    const modeBtns = Object.keys(D.modes).map(k => { const m=D.modes[k]; const on=window._selMode===k;
+      return `<div class="mode-opt" data-mode="${k}" onclick="selMode('${k}')" style="${on?`border-color:${m.color};background:${m.color}18;color:${m.color};`:''}">
+        <span>${m.emoji}</span><span>${k}</span>
         <span style="margin-left:auto;font-size:12px;font-weight:600;opacity:.7;">${m.desc}</span></div>`; }).join('');
-    el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}<div class="card"><h3>🔥 화재 발령</h3>
+    el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}<div class="card"><h3>🚨 재난 발령</h3>
+      <label>재난 종류</label><div style="display:flex;gap:6px;margin-bottom:12px;">${disBtns}</div>
       <label>상황 유형</label><div id="mode-list">${modeBtns}</div>
       <label style="margin-top:12px;">위치</label><input id="dc-loc" value="동관 E27F" style="margin-bottom:14px;">
-      <button class="btn btn-red" onclick="declareIncident(window._selMode||'실제', document.getElementById('dc-loc').value)">발령 전송</button></div>
+      <button class="btn btn-red" style="background:${D.color};" onclick="declareIncident(window._selDisaster, window._selMode, document.getElementById('dc-loc').value)">발령 전송</button></div>
       <div class="muted" style="text-align:center;">발령 시 대상 조직에 푸시 알림이 전송됩니다 (LIVE 모드).</div></div>`;
-    window._selMode = '실제'; return;
+    return;
   }
-  const m = MODES[inc.mode]; const tr = targetRoster();
+  const D = DISASTERS[inc.disaster]; const m = D.modes[inc.mode]; const tr = targetRoster();
   const dispatched = tr.filter(r => { const s=state.responders[r.empNo]; return s && s.status!=='미응답'; }).length;
   const onScene = tr.filter(r => { const s=state.responders[r.empNo]; return s && s.status==='현장'; }).length;
-  const totalPct = (() => { let d=0,t=0; inc.targetTeams.forEach(tm=>{(FIRE_TASKS[tm]||[]).forEach((_,i)=>{t++; if(state.tasks[tm+'-'+i])d++;});}); return t?Math.round(d/t*100):0; })();
-  const teamBars = inc.targetTeams.filter(t=>FIRE_TASKS[t]).map(t => { const p=teamTaskPct(t);
+  const totalPct = (() => { let d=0,t=0; inc.targetTeams.forEach(tm=>{(D.tasks[tm]||[]).forEach((_,i)=>{t++; if(state.tasks[tm+'-'+i])d++;});}); return t?Math.round(d/t*100):0; })();
+  const teamBars = inc.targetTeams.filter(t=>D.tasks[t]).map(t => { const p=teamTaskPct(t);
     return `<div style="margin-bottom:9px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>${t}</span><span class="muted">${p}%</span></div><div class="bar"><div style="width:${p}%;background:${p>=80?'#16a34a':p>=50?'#185FA5':'#BA7517'};"></div></div></div>`; }).join('');
   const roster = tr.map(r => { const s=(state.responders[r.empNo]||{}).status||'미응답';
     return `<div class="row"><div class="dot" style="background:${STATUS_COLOR[s]};"></div><span style="flex:1;font-size:14px;">${esc(r.name)} · <span class="muted">${r.team} ${r.role}</span></span><span class="chip" style="background:${STATUS_COLOR[s]}22;color:${STATUS_COLOR[s]};">${s}</span></div>`; }).join('');
   body = `
-    <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">🗺️</div>
-      <div style="flex:1;"><div style="font-weight:800;">화재 상황판 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
+    <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">${D.icon}</div>
+      <div style="flex:1;"><div style="font-weight:800;">${esc(D.label)} 상황판 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
       <div style="font-size:12px;opacity:.9;margin-top:2px;">${esc(inc.location)} · 발령 ${time(inc.declaredAt)}</div></div></div></div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
       <div class="metric"><div class="muted">출동</div><div class="v">${dispatched}<span class="muted" style="font-size:12px;">/${tr.length}</span></div></div>
       <div class="metric"><div class="muted">현장</div><div class="v" style="color:#185FA5;">${onScene}</div></div>
       <div class="metric"><div class="muted">임무율</div><div class="v" style="color:#16a34a;">${totalPct}%</div></div></div>
-    ${inc.mode!=='실제' ? `<button class="btn btn-red" style="margin-bottom:12px;" onclick="escalate()">⚠️ 실제 화재로 승격 (전원 재출동)</button>` : ''}
+    ${(escalateMode() && inc.mode!==escalateMode()) ? `<button class="btn btn-red" style="background:${D.color};margin-bottom:12px;" onclick="escalate()">⚠️ ${escalateMode()}(으)로 승격 (전원 재출동)</button>` : ''}
     <div class="card"><h3>조별 임무율</h3>${teamBars||'<div class="muted">대상 조 없음</div>'}</div>
     <div class="card"><h3>출동 인원 체크 (${inc.mode})</h3>${roster}</div>
     <button class="btn btn-gray" onclick="closeIncident()">상황 종료</button>`;
   el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}${body}</div>`;
 }
-function selMode(k){ window._selMode=k; document.querySelectorAll('#mode-list .mode-opt').forEach(o => { const on=o.dataset.mode===k; const col=MODES[o.dataset.mode].color; o.style.borderColor=on?col:'transparent'; o.style.background=on?col+'18':'#f1f5f9'; o.style.color=on?col:'#64748b'; }); }
+function selDisaster(k){ window._selDisaster=k; const D=DISASTERS[k]; const modes=Object.keys(D.modes); window._selMode = modes.find(x=>D.modes[x].scope==='all') || modes[modes.length-1]; renderCommand(); }
+function selMode(k){ window._selMode=k; const D=DISASTERS[window._selDisaster||'fire']; document.querySelectorAll('#mode-list .mode-opt').forEach(o => { const on=o.dataset.mode===k; const col=D.modes[o.dataset.mode].color; o.style.borderColor=on?col:'transparent'; o.style.background=on?col+'18':'#f1f5f9'; o.style.color=on?col:'#64748b'; }); }
 
 // ──────────── 부팅 ────────────
 sessionLoad();
