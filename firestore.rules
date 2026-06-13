@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// 트윈타워 상황대응 — Firestore 보안 규칙 (개발 강화판)
+// 한계: 익명 로그인이라 '역할(지휘자)' 단위 잠금은 불가.
+//       진짜 역할 잠금은 사번+PIN 등 실인증 추가 후 custom claim/users 매핑 필요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // 명부·조직도: 로그인 사용자 읽기만. 쓰기는 콘솔(관리자)에서만.
+    match /roster/{id}    { allow read: if signedIn(); allow write: if false; }
+    match /orgCharts/{id} { allow read: if signedIn(); allow write: if false; }
+
+    // FCM 토큰: 클라이언트는 읽기 불가(함수만 admin으로 읽음). 본인 토큰 등록/삭제만.
+    match /fcmTokens/{token} {
+      allow read: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['empNo','name','team','updatedAt'])
+        && request.resource.data.empNo is string
+        && request.resource.data.team is string;
+      allow delete: if signedIn();
+    }
+
+    // 상황(발령)
+    match /incidents/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.status in ['active','closed']
+        && request.resource.data.type is string
+        && request.resource.data.mode in ['훈련','감지기','실제'];
+      allow delete: if false;
+
+      // 출동 체크: 상태값 검증
+      match /responders/{empNo} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.resource.data.status in ['미응답','출동중','현장','복귀'];
+        allow delete: if signedIn();
+      }
+
+      // 임무 달성
+      match /tasks/{tid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && request.resource.data.done is bool;
+        allow delete: if signedIn();
+      }
+    }
+
+    // 그 외 모든 경로는 기본 차단 (명시적 규칙 없는 곳은 거부)
+  }
+}
