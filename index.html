@@ -79,12 +79,12 @@ const MODES = {
 const STATUS_COLOR = { '미응답':'#94a3b8','출동중':'#BA7517','현장':'#185FA5','복귀':'#0F6E56' };
 
 // ──────────── 상태 (view model) ────────────
-let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[] };
+let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false };
 let BK = null;       // 백엔드 (데모 | firebase)
 let MODE_LABEL = 'DEMO';
 
-function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view })); }catch(e){} }
-function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; } }catch(e){} }
+function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted })); }catch(e){} }
+function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; } }catch(e){} }
 function logEvent(action, detail){ state.log.unshift({ ts:Date.now(), actor: state.user?state.user.empNo:'-', action, detail }); if(state.log.length>200) state.log.pop(); }
 
 // ──────────── 데모 백엔드 (localStorage) ────────────
@@ -151,6 +151,7 @@ function login(empNo, name){
   if (!r) return alert('사번을 선택하세요.');
   state.user = { empNo:r.empNo, name:r.name, team:r.team, role:r.role };
   state.view = (r.role === '지휘자' || r.role === '부지휘') ? 'cmd' : 'responder';
+  unlockAudio();   // 로그인 탭(사용자 제스처) 시 오디오 활성화 → 이후 사이렌 재생 가능
   sessionSave(); render();
   if (BK && BK.mode === 'firebase') enablePush(false);
 }
@@ -192,6 +193,42 @@ async function enablePush(interactive){
     render();
   } catch(e){ if(interactive) alert('알림 설정 실패: ' + e.message); console.warn('enablePush:', e.message); }
 }
+
+// ── 발령 알람 사운드 (포그라운드 전용 — 앱 켜져 있을 때 합성 사이렌) ──
+let _audioCtx = null, _lastAlarmKey = null;
+function unlockAudio(){ try { const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return; if(!_audioCtx) _audioCtx = new AC(); if(_audioCtx.state === 'suspended') _audioCtx.resume(); } catch(e){} }
+function playSiren(){
+  try {
+    unlockAudio(); if(!_audioCtx) return;
+    const ctx = _audioCtx, now = ctx.currentTime;
+    for (let i=0;i<4;i++){
+      const t = now + i*0.6;
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(660, t);
+      osc.frequency.linearRampToValueAtTime(1040, t+0.3);
+      osc.frequency.linearRampToValueAtTime(660, t+0.6);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.58);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t+0.6);
+    }
+    if (navigator.vibrate) navigator.vibrate([300,150,300,150,500]);
+  } catch(e){ console.warn('playSiren', e); }
+}
+function maybeAlarm(){
+  if (state.muted) return;
+  const inc = state.incident;
+  if (!inc || inc.status !== 'active') return;
+  const inScope = state.view === 'cmd' || (state.user && inc.targetTeams && inc.targetTeams.includes(state.user.team));
+  if (!inScope) return;
+  const key = inc.declaredAt + '|' + inc.mode;   // 발령·승격마다 새 키 → 1회씩 울림
+  if (key === _lastAlarmKey) return;
+  _lastAlarmKey = key;
+  playSiren();
+}
+function toggleMute(){ state.muted = !state.muted; sessionSave(); render(); if(!state.muted) unlockAudio(); }
 function logout(){ state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
 
@@ -230,9 +267,9 @@ function time(ts){ const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); r
 function badge(){ return `<span class="demo-badge ${MODE_LABEL==='LIVE'?'live-badge':''}">${MODE_LABEL}</span>`; }
 
 function render(){
-  if (!state.user) return renderLogin();
-  if (state.view === 'cmd') return renderCommand();
-  return renderResponder();
+  if (!state.user){ renderLogin(); return; }
+  if (state.view === 'cmd') renderCommand(); else renderResponder();
+  maybeAlarm();
 }
 function topbar(cmd){
   const u = state.user;
@@ -244,6 +281,7 @@ function topbar(cmd){
         <div style="font-size:14px;font-weight:800;">트윈타워 상황대응 ${badge()}</div>
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
       </div>
+      <button class="switch" onclick="toggleMute()" title="발령 사이렌">${state.muted?'🔕':'🔔'}</button>
       <button class="switch" onclick="setView('${other}')">${otherLabel}</button>
       <button class="switch" onclick="logout()">로그아웃</button>
     </div></div>`;
