@@ -152,21 +152,34 @@ function login(empNo, name){
   state.user = { empNo:r.empNo, name:r.name, team:r.team, role:r.role };
   state.view = (r.role === '지휘자' || r.role === '부지휘') ? 'cmd' : 'responder';
   sessionSave(); render();
-  if (BK && BK.mode === 'firebase') registerPush();
+  if (BK && BK.mode === 'firebase') enablePush(false);
 }
 
-// FCM 푸시 등록 — 알림 권한 + 토큰을 fcmTokens/{token}에 저장(조별 발송용)
-async function registerPush(){
+// 알림 권한 상태
+function pushGranted(){ return ('Notification' in window) && Notification.permission === 'granted'; }
+
+// '알림 켜기' 배너 (firebase 모드 + 미허용일 때 표시)
+function pushBanner(){
+  if (!(BK && BK.mode === 'firebase') || pushGranted()) return '';
+  return `<div onclick="enablePush(true)" style="background:#fef3c7;border:1px solid #fcd34d;
+    color:#854d0e;border-radius:10px;padding:11px 12px;margin-bottom:12px;font-size:13px;
+    font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;">
+    🔔 발령 알림 받기 — 눌러서 켜기</div>`;
+}
+
+// FCM 푸시 등록 — 알림 권한 + 토큰 저장. interactive=true면 결과를 알림창으로 안내
+async function enablePush(interactive){
   try {
+    if (!('Notification' in window)){ if(interactive) alert('이 환경은 웹 알림을 지원하지 않습니다.\niOS는 Safari "공유 → 홈 화면에 추가" 후 그 아이콘으로 열어야 알림이 됩니다.'); return; }
     const F = window.__fcm;
-    if (!F || !F.messaging) return;
-    if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
-    const cfg = window.FIREBASE_CONFIG;
-    if (!cfg.vapidKey){ console.warn('vapidKey 없음 → 푸시 비활성(콘솔에서 웹푸시 인증서 생성 필요)'); return; }
+    if (!F || !F.messaging){ if(interactive) alert('푸시 모듈이 아직 준비 중이거나 미지원 환경입니다.\n(iOS는 홈 화면 설치 필요. 잠시 후 다시 눌러보세요.)'); return; }
+    if (!window.FIREBASE_CONFIG.vapidKey){ if(interactive) alert('서버 푸시 키(vapidKey)가 없습니다.'); return; }
+    let perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm === 'denied'){ if(interactive) alert('알림이 차단돼 있습니다.\n브라우저 주소창 옆 자물쇠/사이트 설정에서 "알림"을 허용으로 바꿔주세요.'); return; }
+    if (perm !== 'granted') return;
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted'){ console.warn('알림 권한 거부됨'); return; }
-    const token = await F.getToken(F.messaging, { vapidKey: cfg.vapidKey, serviceWorkerRegistration: reg });
+    const token = await F.getToken(F.messaging, { vapidKey: window.FIREBASE_CONFIG.vapidKey, serviceWorkerRegistration: reg });
     if (!token || !state.user) return;
     await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
       { empNo:state.user.empNo, name:state.user.name, team:state.user.team, updatedAt:Date.now() });
@@ -175,7 +188,9 @@ async function registerPush(){
       try { new Notification(n.title || '발령', { body: n.body || '' }); } catch(e){}
     });
     console.log('FCM 토큰 등록 완료:', token.slice(0,12) + '...');
-  } catch(e){ console.warn('registerPush 실패:', e.message); }
+    if (interactive) alert('✅ 알림이 켜졌습니다. 이제 발령 시 푸시를 받습니다.');
+    render();
+  } catch(e){ if(interactive) alert('알림 설정 실패: ' + e.message); console.warn('enablePush:', e.message); }
 }
 function logout(){ state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
@@ -277,7 +292,7 @@ function renderResponder(){
     <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><h3 style="margin:0;">내 임무 · ${esc(state.user.team)}</h3><span class="chip" style="background:#f0fdf4;color:#15803d;">${teamTaskPct(state.user.team)}%</span></div>${tasks}</div>`
     : `<div class="card" style="text-align:center;color:#64748b;">이번 ${inc.mode} 상황은 <b>${inc.targetTeams.join('·')}</b> 대상입니다. 대기해 주세요.</div>`}`;
   }
-  el.innerHTML = topbar(false) + `<div class="content">${body}</div>`;
+  el.innerHTML = topbar(false) + `<div class="content">${pushBanner()}${body}</div>`;
 }
 function renderCommand(){
   const inc = state.incident; let body;
@@ -286,7 +301,7 @@ function renderCommand(){
       return `<div class="mode-opt" data-mode="${k}" onclick="selMode('${k}')" style="${k==='실제'?`border-color:${m.color};background:#fdecec;color:#791f1f;`:''}">
         <span>${k==='훈련'?'🎓':k==='감지기'?'🔔':'⚠️'}</span><span>${k==='감지기'?'감지기 동작':k==='실제'?'실제 화재':'훈련'}</span>
         <span style="margin-left:auto;font-size:12px;font-weight:600;opacity:.7;">${m.desc}</span></div>`; }).join('');
-    el.innerHTML = topbar(true) + `<div class="content"><div class="card"><h3>🔥 화재 발령</h3>
+    el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}<div class="card"><h3>🔥 화재 발령</h3>
       <label>상황 유형</label><div id="mode-list">${modeBtns}</div>
       <label style="margin-top:12px;">위치</label><input id="dc-loc" value="동관 E27F" style="margin-bottom:14px;">
       <button class="btn btn-red" onclick="declareIncident(window._selMode||'실제', document.getElementById('dc-loc').value)">발령 전송</button></div>
@@ -313,7 +328,7 @@ function renderCommand(){
     <div class="card"><h3>조별 임무율</h3>${teamBars||'<div class="muted">대상 조 없음</div>'}</div>
     <div class="card"><h3>출동 인원 체크 (${inc.mode})</h3>${roster}</div>
     <button class="btn btn-gray" onclick="closeIncident()">상황 종료</button>`;
-  el.innerHTML = topbar(true) + `<div class="content">${body}</div>`;
+  el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}${body}</div>`;
 }
 function selMode(k){ window._selMode=k; document.querySelectorAll('#mode-list .mode-opt').forEach(o => { const on=o.dataset.mode===k; const col=MODES[o.dataset.mode].color; o.style.borderColor=on?col:'transparent'; o.style.background=on?col+'18':'#f1f5f9'; o.style.color=on?col:'#64748b'; }); }
 
