@@ -18,7 +18,9 @@ messaging.onBackgroundMessage(function(payload){
   self.registration.showNotification(n.title || '재난 발령', {
     body: n.body || '앱에서 출동 체크하세요.',
     tag: 'twintower-incident',
+    renotify: true,
     requireInteraction: true,
+    vibrate: [300, 150, 300, 150, 500],
     data: { link: (payload.fcmOptions && payload.fcmOptions.link) || 'https://atssa-kim.github.io/twintower-ops/' }
   });
 });

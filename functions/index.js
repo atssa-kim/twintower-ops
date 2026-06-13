@@ -31,7 +31,12 @@ exports.onIncident = onDocumentWritten(
       },
       webpush: {
         fcmOptions: { link: 'https://atssa-kim.github.io/twintower-ops/' },
-        notification: { requireInteraction: true }
+        notification: {
+          requireInteraction: true,
+          renotify: true,
+          tag: 'twintower-incident',
+          vibrate: [300, 150, 300, 150, 500]
+        }
       }
     });
 
