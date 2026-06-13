@@ -8,3 +8,6 @@ Thumbs.db
 
 # 의존성
 node_modules/
+
+# 개인 메모
+*.txt
