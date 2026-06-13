@@ -98,6 +98,22 @@ const DISASTERS = {
       '상황실':['상황 전파·안내방송 준비','비상 안내방송 송출(ERT)','장비 가동상태·환자발생 통보','종합상황실 보고','상황 종료 방송·최종 보고'],
       '지원반':['외부기관·주변센터 연락','비상장비 현장 전달','응급조치 판단·상황실 전달','119 구급대 환자 인계·상태 확인','의료지원(들것·AED)'],
     }
+  },
+  power: {
+    label:'⚡ 정전', icon:'⚡', color:'#78350f',
+    equip:['무전기','랜턴','손전등','절연장갑','검전기','비상키'],
+    modes:{
+      '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+      '부분':{ color:'#BA7517', scope:'confirm', teams:['대응반'], desc:'부분 정전 — 대응반 우선 출동', emoji:'⚡' },
+      '전체':{ color:'#A32D2D', scope:'all',     teams:ALL_TEAMS,  desc:'전체 정전/블랙아웃 — 전 조직 즉시', emoji:'🔌' },
+    },
+    tasks:{
+      '지휘반':['정전 원인 파악·상급기관 보고','상황 파악 및 지원 결정','상황실 지휘·통제','마포 종합상황실 신고(1661-8182)'],
+      '대응반':['수변전실 이동·정전 범위(한전/구내) 파악','발전기 기동·ATS 절체 상태 확인','분기 VCB 차단(OFF) → 복전 시 순차 투입(ON)','계전기 RESET·메인 VCB 투입','복전 완료·원인분석·재발방지·보고'],
+      '유도반':['정전 시 E/V 탑승 통제·비상계단 안내','비상계단 고객 안전 유도','무전기로 상황 지속 보고','지하주차장 근무자에 상황 전달'],
+      '상황실':['정전 접수·조별 출동 지시(문자·밴드·카톡)','비상방송 송출(정전 발생 안내)','승강기 기준층 강제 복귀 지시','장비 가동상태 확인·복전 완료 방송','종합상황실 최종 보고'],
+      '지원반':['시설물(전산실·냉동기·보일러·승강기) 이상 확인','복전 후 자동제어·소방설비 점검','E/V 갇힘 시 OTIS 구호 지원','냉온수기·AHU·항온항습기 재가동 확인','피해설비 복구·보고'],
+    }
   }
 };
 // 현재 상황의 재난 정의 / 임무맵
@@ -375,9 +391,9 @@ function renderCommand(){
     const D = DISASTERS[window._selDisaster];
     if (!window._selMode || !D.modes[window._selMode]) window._selMode = Object.keys(D.modes).find(x=>D.modes[x].scope==='all');
     const disBtns = Object.keys(DISASTERS).map(k => { const DD=DISASTERS[k]; const on=window._selDisaster===k;
-      return `<button onclick="selDisaster('${k}')" style="flex:1;border:2px solid ${on?DD.color:'#e2e8f0'};
-        background:${on?DD.color:'#fff'};color:${on?'#fff':'#64748b'};border-radius:10px;padding:11px 4px;
-        font-size:13.5px;font-weight:800;font-family:inherit;cursor:pointer;">${DD.label}</button>`; }).join('');
+      return `<button onclick="selDisaster('${k}')" style="flex:1;min-width:0;border:2px solid ${on?DD.color:'#e2e8f0'};
+        background:${on?DD.color:'#fff'};color:${on?'#fff':'#64748b'};border-radius:10px;padding:11px 2px;
+        font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap;">${DD.label}</button>`; }).join('');
     const modeBtns = Object.keys(D.modes).map(k => { const m=D.modes[k]; const on=window._selMode===k;
       return `<div class="mode-opt" data-mode="${k}" onclick="selMode('${k}')" style="${on?`border-color:${m.color};background:${m.color}18;color:${m.color};`:''}">
         <span>${m.emoji}</span><span>${k}</span>
