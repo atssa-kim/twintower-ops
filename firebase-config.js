@@ -1,0 +1,11 @@
+// ── Firebase 설정 ──────────────────────────────────────────────
+// 값이 채워지면 자동으로 '실시간 모드(LIVE)'로 동작합니다.
+// (apiKey는 웹앱에 노출되는 게 정상 — 실제 보안은 Firestore 보안규칙으로 처리)
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAvKPBGm0jHgQb4hsPhARi7AH2stXoyTiA",
+  authDomain: "disaster-response-system-f669b.firebaseapp.com",
+  projectId: "disaster-response-system-f669b",
+  storageBucket: "disaster-response-system-f669b.firebasestorage.app",
+  messagingSenderId: "116181765484",
+  appId: "1:116181765484:web:d4ec2e24d409da0ef93749"
+};

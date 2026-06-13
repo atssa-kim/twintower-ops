@@ -1,0 +1,10 @@
+# OS·에디터 부산물
+Thumbs.db
+.DS_Store
+
+# 로컬 도구 폴더
+.claude/
+.omc/
+
+# 의존성
+node_modules/

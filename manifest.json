@@ -1,0 +1,9 @@
+{
+  "name": "트윈타워 상황대응",
+  "short_name": "상황대응",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#A32D2D",
+  "theme_color": "#A32D2D",
+  "icons": []
+}
