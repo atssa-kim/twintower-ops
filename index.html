@@ -69,6 +69,7 @@ const ALL_TEAMS = ['지휘반','대응반','유도반','상황실','지원반'];
 const DISASTERS = {
   fire: {
     label:'🔥 화재', icon:'🔥', color:'#A32D2D',
+    mention:'화재 발생! 화재 발생, 신속 출동 바랍니다.',
     equip:['방독면','무전기','안전모','랜턴','손전등'],
     modes:{
       '훈련':  { color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -85,6 +86,7 @@ const DISASTERS = {
   },
   leak: {
     label:'💧 누수·침수', icon:'💧', color:'#1d4ed8',
+    mention:'누수 침수 발생! 누수 발생, 신속 출동 바랍니다.',
     equip:['무전기','랜턴','마스터키','사다리','보양비닐','수중펌프','흡수기','밀대','들것·AED'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -101,6 +103,7 @@ const DISASTERS = {
   },
   power: {
     label:'⚡ 정전', icon:'⚡', color:'#78350f',
+    mention:'정전 발생! 정전 발생, 신속 출동 바랍니다.',
     equip:['무전기','랜턴','손전등','절연장갑','검전기','비상키'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -264,16 +267,32 @@ function playSiren(){
     if (navigator.vibrate) navigator.vibrate([400,200,400,200,400,200,600]);
   } catch(e){ console.warn('playSiren', e); }
 }
+// 재난별 음성 출동멘트 (TTS) — 미지원 시 사이렌 폴백
+function speakMention(text){
+  try {
+    if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance){ playSiren(); return; }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR'; u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
+    speechSynthesis.speak(u);
+  } catch(e){ console.warn('speak', e); playSiren(); }
+}
+function announce(inc){
+  const D = DISASTERS[inc.disaster];
+  const ment = D.mention || (D.label + ' 발생, 신속 출동 바랍니다.');
+  speakMention(ment + ' 위치는 ' + inc.location + ' 입니다.');
+  if (navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
+}
 function maybeAlarm(){
   if (state.muted) return;
   const inc = state.incident;
   if (!inc || inc.status !== 'active') return;
   const inScope = state.view === 'cmd' || (state.user && inc.targetTeams && inc.targetTeams.includes(state.user.team));
   if (!inScope) return;
-  const key = inc.declaredAt + '|' + inc.mode;   // 발령·승격마다 새 키 → 1회씩 울림
+  const key = inc.declaredAt + '|' + inc.mode;   // 발령·승격마다 새 키 → 1회씩 안내
   if (key === _lastAlarmKey) return;
   _lastAlarmKey = key;
-  playSiren();
+  announce(inc);
 }
 function toggleMute(){ state.muted = !state.muted; sessionSave(); render(); if(!state.muted) unlockAudio(); }
 function logout(){ state.user = null; sessionSave(); render(); }
@@ -333,7 +352,7 @@ function topbar(cmd){
         <div style="font-size:14px;font-weight:800;">트윈타워 상황대응 ${badge()}</div>
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
       </div>
-      <button class="switch" onclick="toggleMute()" title="발령 사이렌">${state.muted?'🔕':'🔔'}</button>
+      <button class="switch" onclick="toggleMute()" title="발령 음성안내">${state.muted?'🔕':'🔔'}</button>
       <button class="switch" onclick="setView('${other}')">${otherLabel}</button>
       <button class="switch" onclick="logout()">로그아웃</button>
     </div></div>`;
