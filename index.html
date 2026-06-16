@@ -70,6 +70,7 @@ const ALL_TEAMS = ['지휘반','대응반','유도반','상황실','지원반'];
 const DISASTERS = {
   fire: {
     label:'🔥 화재', icon:'🔥', color:'#A32D2D', shortName:'화재',
+    mention:(c)=>`해당 화재 알람은 화재 발생, 화재 발생. ${c.teams} 신속하게 출동! ${c.location}에서 화재 발생으로 즉시 대응 바랍니다.`,
     equip:['방독면','무전기','안전모','랜턴','손전등'],
     modes:{
       '훈련':  { color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -86,6 +87,7 @@ const DISASTERS = {
   },
   leak: {
     label:'💧 누수', icon:'💧', color:'#1d4ed8', shortName:'누수',
+    mention:(c)=>`해당 누수 알람은 누수 발생, 침수 발생. ${c.teams} 신속하게 출동! ${c.location}에서 누수·침수 발생으로 즉시 대응 바랍니다.`,
     equip:['무전기','랜턴','마스터키','사다리','보양비닐','수중펌프','흡수기','밀대','들것·AED'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -102,6 +104,7 @@ const DISASTERS = {
   },
   power: {
     label:'⚡ 정전', icon:'⚡', color:'#78350f', shortName:'정전',
+    mention:(c)=>`해당 정전 알람은 정전 발생, 정전 발생. ${c.teams} 신속하게 출동! ${c.location}에서 정전 발생으로 즉시 대응 바랍니다.`,
     equip:['무전기','랜턴','손전등','절연장갑','검전기','비상키'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -299,10 +302,20 @@ function speakMention(text){
 }
 function announce(inc){
   const D = DISASTERS[inc.disaster];
-  const prefix = inc.scope === 'drill' ? '훈련상황' : '실제상황';
-  const name = D.shortName;
-  const loc = inc.location;
-  const ment = `${prefix} ${loc}에서 ${name} 발생!, ${prefix} ${loc}에서 ${name} 발생! 신속출동바랍니다.`;
+  let ment;
+  if (typeof D.mention === 'function') {
+    const teams = (inc.targetTeams && inc.targetTeams.length)
+      ? inc.targetTeams.join(', ') + '은'
+      : '전 조직은';
+    const ctx = { location: inc.location, teams, mode: inc.mode };
+    ment = D.mention(ctx);
+    if (inc.mode === '훈련') ment = '훈련 상황. ' + ment;
+  } else {
+    const prefix = inc.scope === 'drill' ? '훈련상황' : '실제상황';
+    const name = D.shortName || D.label;
+    const loc = inc.location;
+    ment = `${prefix} ${loc}에서 ${name} 발생!, ${prefix} ${loc}에서 ${name} 발생! 신속출동바랍니다.`;
+  }
   speakMention(ment);
   if (navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
 }
