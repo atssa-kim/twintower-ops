@@ -122,12 +122,12 @@ function dTasks(){ return dInfo().tasks; }
 const STATUS_COLOR = { '미응답':'#94a3b8','출동중':'#BA7517','현장':'#185FA5','복귀':'#0F6E56' };
 
 // ──────────── 상태 (view model) ────────────
-let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false, voice:'female' };
+let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false };
 let BK = null;       // 백엔드 (데모 | firebase)
 let MODE_LABEL = 'DEMO';
 
-function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted, voice:state.voice })); }catch(e){} }
-function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; state.voice=s.voice||'female'; } }catch(e){} }
+function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted })); }catch(e){} }
+function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; } }catch(e){} }
 function logEvent(action, detail){ state.log.unshift({ ts:Date.now(), actor: state.user?state.user.empNo:'-', action, detail }); if(state.log.length>200) state.log.pop(); }
 
 // ──────────── 데모 백엔드 (localStorage) ────────────
@@ -239,7 +239,11 @@ async function enablePush(interactive){
 
 // ── 발령 알람 사운드 (포그라운드 전용 — 앱 켜져 있을 때 합성 사이렌) ──
 let _audioCtx = null, _lastAlarmKey = null;
-function unlockAudio(){ try { const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return; if(!_audioCtx) _audioCtx = new AC(); if(_audioCtx.state === 'suspended') _audioCtx.resume(); } catch(e){} }
+function unlockAudio(){
+  try { const AC = window.AudioContext || window.webkitAudioContext; if(!AC) return; if(!_audioCtx) _audioCtx = new AC(); if(_audioCtx.state === 'suspended') _audioCtx.resume(); } catch(e){}
+  // iOS: speechSynthesis는 사용자 제스처 시점에 한 번 호출해야 이후 자동 재생 가능
+  try { if('speechSynthesis' in window){ const u = new SpeechSynthesisUtterance(''); u.volume = 0; speechSynthesis.speak(u); } } catch(e){}
+}
 function playSiren(){
   try {
     unlockAudio(); if(!_audioCtx) return;
@@ -270,27 +274,19 @@ function speakMention(text){
     if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance){ playSiren(); return; }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ko-KR'; u.rate = 1.0; u.volume = 1.0;
+    u.volume = 1.0;
     const applyVoice = () => {
-      const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('ko'));
-      const maleV  = voices.find(v => v.name.includes('Injoon')) || voices.find(v => /male/i.test(v.name));
-      const femaleV = voices.find(v => v.name.includes('Google')) || voices.find(v => v.name.includes('Heami')) || voices[0];
-      if (state.voice === 'male') {
-        u.voice = maleV || femaleV;
-        u.pitch = maleV ? 1.0 : 0.3;
-        u.rate  = maleV ? 1.0 : 0.9;
-      } else {
-        u.voice = femaleV;
-        u.pitch = 1.0;
-        u.rate  = 1.0;
-      }
+      const ko = speechSynthesis.getVoices().filter(v => v.lang.startsWith('ko'));
+      const voice = ko.find(v => v.name.includes('Google')) || ko.find(v => v.name.includes('Heami')) || ko[0];
+      if (voice) { u.voice = voice; u.lang = voice.lang; }
+      else { u.lang = 'ko-KR'; }
+      u.pitch = 1.0; u.rate = 1.0;
       speechSynthesis.speak(u);
     };
     if (speechSynthesis.getVoices().length) applyVoice();
     else speechSynthesis.addEventListener('voiceschanged', applyVoice, { once: true });
   } catch(e){ console.warn('speak', e); playSiren(); }
 }
-function toggleVoice(){ state.voice = state.voice === 'female' ? 'male' : 'female'; sessionSave(); render(); }
 function announce(inc){
   const D = DISASTERS[inc.disaster];
   const prefix = inc.scope === 'drill' ? '훈련상황' : '실제상황';
@@ -370,8 +366,7 @@ function topbar(cmd){
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
       </div>
       <button class="switch" onclick="toggleMute()" title="발령 음성안내">${state.muted?'🔕':'🔔'}</button>
-      <button class="switch" onclick="toggleVoice()" title="화자 선택">${state.voice==='female'?'👩 여':'👨 남'}</button>
-      <button class="switch" onclick="setView('${other}')">${otherLabel}</button>
+<button class="switch" onclick="setView('${other}')">${otherLabel}</button>
       <button class="switch" onclick="logout()">로그아웃</button>
     </div></div>`;
 }
