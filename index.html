@@ -34,7 +34,7 @@
   .task { display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid #f1f5f9; cursor:pointer; font-size:14px; }
   .check { width:22px; height:22px; border-radius:6px; border:2px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
   .banner { border-radius:14px; padding:14px; color:#fff; margin-bottom:12px; }
-  .switch { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:11px; font-weight:700; padding:5px 10px; border-radius:8px; cursor:pointer; }
+  .switch { background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:13px; font-weight:700; padding:8px 14px; border-radius:8px; cursor:pointer; }
   .muted { color:#94a3b8; font-size:12px; }
   h3 { font-size:15px; font-weight:800; margin-bottom:10px; }
 </style>
@@ -307,7 +307,7 @@ function maybeAlarm(){
   _lastAlarmKey = key;
   announce(inc);
 }
-function toggleMute(){ state.muted = !state.muted; sessionSave(); render(); if(!state.muted) unlockAudio(); }
+function toggleMute(){ state.muted = !state.muted; if(state.muted) speechSynthesis.cancel(); sessionSave(); render(); if(!state.muted) unlockAudio(); }
 function logout(){ state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
 
@@ -365,7 +365,7 @@ function topbar(cmd){
         <div style="font-size:14px;font-weight:800;">트윈타워 상황대응 ${badge()}</div>
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
       </div>
-      <button class="switch" onclick="toggleMute()" title="발령 음성안내">${state.muted?'🔕':'🔔'}</button>
+      <button class="switch" onclick="toggleMute()">${state.muted?'🔕 해제':'🔔 음소거'}</button>
 <button class="switch" onclick="setView('${other}')">${otherLabel}</button>
       <button class="switch" onclick="logout()">로그아웃</button>
     </div></div>`;
