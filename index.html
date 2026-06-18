@@ -68,8 +68,7 @@ const ALL_TEAMS = ['지휘반','대응반','유도반','상황실','지원반'];
 // 재난별 정의 (임무·비상장구는 트윈타워 재난대응 매뉴얼 참조)
 const DISASTERS = {
   fire: {
-    label:'🔥 화재', icon:'🔥', color:'#A32D2D',
-    mention:'화재 발생! 화재 발생, 신속 출동 바랍니다.',
+    label:'🔥 화재', icon:'🔥', color:'#A32D2D', shortName:'화재',
     equip:['방독면','무전기','안전모','랜턴','손전등'],
     modes:{
       '훈련':  { color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -85,8 +84,7 @@ const DISASTERS = {
     }
   },
   leak: {
-    label:'💧 누수·침수', icon:'💧', color:'#1d4ed8',
-    mention:'누수 침수 발생! 누수 발생, 신속 출동 바랍니다.',
+    label:'💧 누수', icon:'💧', color:'#1d4ed8', shortName:'누수',
     equip:['무전기','랜턴','마스터키','사다리','보양비닐','수중펌프','흡수기','밀대','들것·AED'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -102,8 +100,7 @@ const DISASTERS = {
     }
   },
   power: {
-    label:'⚡ 정전', icon:'⚡', color:'#78350f',
-    mention:'정전 발생! 정전 발생, 신속 출동 바랍니다.',
+    label:'⚡ 정전', icon:'⚡', color:'#78350f', shortName:'정전',
     equip:['무전기','랜턴','손전등','절연장갑','검전기','비상키'],
     modes:{
       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
@@ -125,12 +122,12 @@ function dTasks(){ return dInfo().tasks; }
 const STATUS_COLOR = { '미응답':'#94a3b8','출동중':'#BA7517','현장':'#185FA5','복귀':'#0F6E56' };
 
 // ──────────── 상태 (view model) ────────────
-let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false };
+let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false, voice:'female' };
 let BK = null;       // 백엔드 (데모 | firebase)
 let MODE_LABEL = 'DEMO';
 
-function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted })); }catch(e){} }
-function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; } }catch(e){} }
+function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted, voice:state.voice })); }catch(e){} }
+function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; state.voice=s.voice||'female'; } }catch(e){} }
 function logEvent(action, detail){ state.log.unshift({ ts:Date.now(), actor: state.user?state.user.empNo:'-', action, detail }); if(state.log.length>200) state.log.pop(); }
 
 // ──────────── 데모 백엔드 (localStorage) ────────────
@@ -273,14 +270,34 @@ function speakMention(text){
     if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance){ playSiren(); return; }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ko-KR'; u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
-    speechSynthesis.speak(u);
+    u.lang = 'ko-KR'; u.rate = 1.0; u.volume = 1.0;
+    const applyVoice = () => {
+      const voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('ko'));
+      const maleV  = voices.find(v => v.name.includes('Injoon')) || voices.find(v => /male/i.test(v.name));
+      const femaleV = voices.find(v => v.name.includes('Google')) || voices.find(v => v.name.includes('Heami')) || voices[0];
+      if (state.voice === 'male') {
+        u.voice = maleV || femaleV;
+        u.pitch = maleV ? 1.0 : 0.3;
+        u.rate  = maleV ? 1.0 : 0.9;
+      } else {
+        u.voice = femaleV;
+        u.pitch = 1.0;
+        u.rate  = 1.0;
+      }
+      speechSynthesis.speak(u);
+    };
+    if (speechSynthesis.getVoices().length) applyVoice();
+    else speechSynthesis.addEventListener('voiceschanged', applyVoice, { once: true });
   } catch(e){ console.warn('speak', e); playSiren(); }
 }
+function toggleVoice(){ state.voice = state.voice === 'female' ? 'male' : 'female'; sessionSave(); render(); }
 function announce(inc){
   const D = DISASTERS[inc.disaster];
-  const ment = D.mention || (D.label + ' 발생, 신속 출동 바랍니다.');
-  speakMention(ment + ' 위치는 ' + inc.location + ' 입니다.');
+  const prefix = inc.scope === 'drill' ? '훈련상황' : '실제상황';
+  const name = D.shortName;
+  const loc = inc.location;
+  const ment = `${prefix} ${loc}에서 ${name} 발생!, ${prefix} ${loc}에서 ${name} 발생! 신속출동바랍니다.`;
+  speakMention(ment);
   if (navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
 }
 function maybeAlarm(){
@@ -317,7 +334,7 @@ function escalate(){
   logEvent('escalate', `${from} → ${to} 승격 (전원 재출동)`);
   BK.patchIncident({ mode:to, scope:'all', targetTeams:[...D.modes[to].teams], escalations });
 }
-function closeIncident(){ if (!confirm('상황을 종료할까요?')) return; logEvent('close','상황 종료'); BK.clearIncident(); }
+function closeIncident(){ if (!confirm('상황을 종료할까요?')) return; speechSynthesis.cancel(); logEvent('close','상황 종료'); BK.clearIncident(); }
 function setMyStatus(s){ if (!state.incident) return; logEvent('status', `출동상태 → ${s}`); BK.setResponder(state.user.empNo, { empNo:state.user.empNo, name:state.user.name, team:state.user.team, role:state.user.role, status:s, updatedAt:Date.now() }); }
 function toggleTask(team, i){
   const id = team + '-' + i;
@@ -353,6 +370,7 @@ function topbar(cmd){
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
       </div>
       <button class="switch" onclick="toggleMute()" title="발령 음성안내">${state.muted?'🔕':'🔔'}</button>
+      <button class="switch" onclick="toggleVoice()" title="화자 선택">${state.voice==='female'?'👩 여':'👨 남'}</button>
       <button class="switch" onclick="setView('${other}')">${otherLabel}</button>
       <button class="switch" onclick="logout()">로그아웃</button>
     </div></div>`;
@@ -436,15 +454,16 @@ function renderCommand(){
   body = `
     <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">${D.icon}</div>
       <div style="flex:1;"><div style="font-weight:800;">${esc(D.label)} 상황판 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
-      <div style="font-size:12px;opacity:.9;margin-top:2px;">${esc(inc.location)} · 발령 ${time(inc.declaredAt)}</div></div></div></div>
+      <div style="font-size:12px;opacity:.9;margin-top:2px;">${esc(inc.location)} · 발령 ${time(inc.declaredAt)}</div></div>
+      <button onclick="closeIncident()" style="border:none;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:800;padding:11px 24px;border-radius:9px;cursor:pointer;font-family:inherit;white-space:nowrap;">상황 종료</button>
+      </div></div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
       <div class="metric"><div class="muted">출동</div><div class="v">${dispatched}<span class="muted" style="font-size:12px;">/${tr.length}</span></div></div>
       <div class="metric"><div class="muted">현장</div><div class="v" style="color:#185FA5;">${onScene}</div></div>
       <div class="metric"><div class="muted">임무율</div><div class="v" style="color:#16a34a;">${totalPct}%</div></div></div>
     ${(escalateMode() && inc.mode!==escalateMode()) ? `<button class="btn btn-red" style="background:${D.color};margin-bottom:12px;" onclick="escalate()">⚠️ ${escalateMode()}(으)로 승격 (전원 재출동)</button>` : ''}
     <div class="card"><h3>조별 임무율</h3>${teamBars||'<div class="muted">대상 조 없음</div>'}</div>
-    <div class="card"><h3>출동 인원 체크 (${inc.mode})</h3>${roster}</div>
-    <button class="btn btn-gray" onclick="closeIncident()">상황 종료</button>`;
+    <div class="card"><h3>출동 인원 체크 (${inc.mode})</h3>${roster}</div>`;
   el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}${body}</div>`;
 }
 function selDisaster(k){ window._selDisaster=k; const D=DISASTERS[k]; const modes=Object.keys(D.modes); window._selMode = modes.find(x=>D.modes[x].scope==='all') || modes[modes.length-1]; renderCommand(); }
