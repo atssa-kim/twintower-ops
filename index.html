@@ -404,7 +404,7 @@ function renderResponder(){
       <div style="font-weight:800;margin:8px 0 4px;">현재 발령 없음</div><div class="muted">발령 시 이 화면에 상황이 표시됩니다.</div></div>`;
   } else {
     const D = DISASTERS[inc.disaster]; const m = D.modes[inc.mode]; const st = myStatus();
-    const stBtn = ['미응답','출동중','현장','복귀'].map(s => `<button onclick="setMyStatus('${s}')" style="${st===s?`background:${STATUS_COLOR[s]};color:#fff;`:''}">${s}</button>`).join('');
+    const stBtn = ['출동중','현장','복귀'].map(s => `<button onclick="setMyStatus('${s}')" style="${st===s?`background:${STATUS_COLOR[s]};color:#fff;`:''}">${s}</button>`).join('');
     const tasks = (D.tasks[state.user.team]||[]).map((t,i) => { const ok=!!state.tasks[state.user.team+'-'+i];
       return `<div class="task" onclick="toggleTask('${state.user.team}',${i})"><div class="check" style="${ok?`background:${TEAM_COLOR[state.user.team]};border-color:${TEAM_COLOR[state.user.team]};`:''}">${ok?'✓':''}</div><span style="${ok?'color:#94a3b8;text-decoration:line-through;':''}">${esc(t)}</span></div>`; }).join('');
     const inScope = inc.targetTeams.includes(state.user.team);
