@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Left sound waves -->
+  <path d="M28,44 C22,52 22,68 28,76" stroke="#CC0000" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M17,34 C8,52 8,68 17,86" stroke="#CC0000" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Right sound waves -->
+  <path d="M92,44 C98,52 98,68 92,76" stroke="#CC0000" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+  <path d="M103,34 C112,52 112,68 103,86" stroke="#CC0000" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Bell body -->
+  <path d="M60,22
+    C60,22 60,22 60,22
+    C44,22 35,36 35,54
+    L35,72 L25,81
+    L95,81 L85,72
+    L85,54 C85,36 76,22 60,22 Z"
+    fill="#CC0000"/>
+
+  <!-- Bell top mount -->
+  <rect x="55" y="13" width="10" height="12" rx="5" fill="#CC0000"/>
+
+  <!-- Bell bottom clapper -->
+  <path d="M44,81 Q60,95 76,81 Z" fill="#CC0000"/>
+  <circle cx="60" cy="94" r="7" fill="#CC0000"/>
+</svg>

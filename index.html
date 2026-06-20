@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#A32D2D">
 <title>트윈타워 상황대응</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
   body { font-family:'Noto Sans KR',-apple-system,system-ui,sans-serif; background:#f1f5f9; color:#1e293b; }
@@ -361,6 +362,7 @@ function topbar(cmd){
   const otherLabel = state.view === 'cmd' ? '대원 화면' : '지휘 화면';
   return `<div class="topbar ${cmd?'cmd':''}">
     <div style="display:flex;align-items:center;gap:8px;">
+      <img src="icons/bell.svg" style="width:38px;height:38px;flex-shrink:0;" alt="출동">
       <div style="flex:1;">
         <div style="font-size:14px;font-weight:800;">트윈타워 상황대응 ${badge()}</div>
         <div style="font-size:11px;opacity:.85;margin-top:2px;">${esc(u.name)} · ${esc(u.team)} ${esc(u.role)}</div>
@@ -373,8 +375,11 @@ function topbar(cmd){
 function renderLogin(){
   const opts = ROSTER.map(r => `<option value="${r.empNo}">${r.empNo} · ${r.team} ${r.role} (${r.name})</option>`).join('');
   el.innerHTML = `
-  <div class="topbar"><div style="font-size:16px;font-weight:800;">🔥 트윈타워 상황대응 ${badge()}</div>
+  <div class="topbar"><div style="display:flex;align-items:center;gap:10px;">
+    <img src="icons/bell.svg" style="width:40px;height:40px;flex-shrink:0;" alt="출동">
+    <div><div style="font-size:16px;font-weight:800;">트윈타워 상황대응 ${badge()}</div>
     <div style="font-size:11px;opacity:.85;margin-top:3px;">재난 협업 · 단계1</div></div>
+  </div></div>
   <div class="content">
     <div class="card">
       <h3>로그인</h3>
