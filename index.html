@@ -122,7 +122,7 @@ function dTasks(){ return dInfo().tasks; }
 const STATUS_COLOR = { '미응답':'#94a3b8','출동중':'#BA7517','현장':'#185FA5','복귀':'#0F6E56' };
 
 // ──────────── 상태 (view model) ────────────
-let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false };
+let state = { user:null, view:'auto', incident:null, responders:{}, tasks:{}, log:[], muted:false, memberTasks:null };
 let BK = null;       // 백엔드 (데모 | firebase)
 let MODE_LABEL = 'DEMO';
 
@@ -135,12 +135,28 @@ const DemoBackend = {
   mode:'demo',
   start(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_shared')); if(s){ state.incident=s.incident||null; state.responders=s.responders||{}; state.tasks=s.tasks||{}; } }catch(e){} render(); },
   _p(){ try{ localStorage.setItem('tt_ops_shared', JSON.stringify({ incident:state.incident, responders:state.responders, tasks:state.tasks })); }catch(e){} render(); },
-  setIncident(inc){ state.incident=inc; state.responders={}; state.tasks={}; this._p(); },
+  setIncident(inc){ state.incident=inc; state.responders={}; state.tasks={}; state.memberTasks=null; this._p(); },
   patchIncident(p){ if(state.incident) Object.assign(state.incident, p); this._p(); },
-  clearIncident(){ state.incident=null; state.responders={}; state.tasks={}; this._p(); },
+  clearIncident(){ state.incident=null; state.responders={}; state.tasks={}; state.memberTasks=null; this._p(); },
   setResponder(e,d){ state.responders[e]=d; this._p(); },
   setTask(id,d){ state.tasks[id]=d; this._p(); },
   delTask(id){ delete state.tasks[id]; this._p(); },
+  // 데모: memberTasks 시뮬레이션 (hardcoded tasks → memberTasks 포맷으로 변환)
+  syncMemberTasks(){
+    if (!state.incident || !state.user) { state.memberTasks=null; return; }
+    const D = DISASTERS[(state.incident&&state.incident.disaster)||'fire'];
+    const myTasks = (D.tasks[state.user.team]||[]);
+    if (!myTasks.length) { state.memberTasks=null; return; }
+    const tasks = myTasks.map((label,i) => ({
+      seq:i+1, label, done:!!(state.tasks[state.user.team+'-'+i]),
+      doneAt: (state.tasks[state.user.team+'-'+i]||{}).at||null,
+    }));
+    state.memberTasks = {
+      empNo:state.user.empNo, name:state.user.name,
+      roleLabel:state.user.team, group:state.user.team, badge:state.user.role,
+      tasks, taskCount:tasks.length, doneCount:tasks.filter(t=>t.done).length,
+    };
+  },
 };
 
 // ──────────── Firebase 백엔드 (모듈러 SDK · named DB 지원) ────────────
@@ -163,20 +179,42 @@ async function makeFirebaseBackend(cfg){
   const incRef  = fs.doc(db, 'incidents', 'active');
   const respCol = fs.collection(db, 'incidents', 'active', 'responders');
   const taskCol = fs.collection(db, 'incidents', 'active', 'tasks');
+  const mtCol   = fs.collection(db, 'incidents', 'active', 'memberTasks');
   async function wipe(col){ const sn = await fs.getDocs(col); const b = fs.writeBatch(db); sn.forEach(x => b.delete(x.ref)); await b.commit(); }
+  let _mtUnsub = null;
+  function subscribeMemberTasks(empNo){
+    if (_mtUnsub) { _mtUnsub(); _mtUnsub = null; }
+    if (!empNo) return;
+    _mtUnsub = fs.onSnapshot(fs.doc(mtCol, empNo),
+      s => { state.memberTasks = s.exists() ? s.data() : null; render(); },
+      e => console.error('memberTasks', e));
+  }
   return {
     mode:'firebase',
     start(){
-      fs.onSnapshot(incRef,  s => { const d=s.data(); state.incident = (d && d.status==='active') ? d : null; render(); }, e=>console.error('inc',e));
+      fs.onSnapshot(incRef,  s => { const d=s.data(); state.incident = (d && d.status==='active') ? d : null; if(!state.incident){ state.memberTasks=null; } render(); }, e=>console.error('inc',e));
       fs.onSnapshot(respCol, s => { const r={}; s.forEach(x => r[x.id]=x.data()); state.responders=r; render(); }, e=>console.error('resp',e));
       fs.onSnapshot(taskCol, s => { const t={}; s.forEach(x => t[x.id]=x.data()); state.tasks=t; render(); }, e=>console.error('task',e));
+      // 로그인 상태면 즉시 구독
+      if (state.user) subscribeMemberTasks(state.user.empNo);
     },
-    async setIncident(inc){ await wipe(respCol); await wipe(taskCol); await fs.setDoc(incRef, inc); },
+    subscribeMemberTasks,
+    async setIncident(inc){ await wipe(respCol); await wipe(taskCol); await wipe(mtCol); await fs.setDoc(incRef, inc); },
     async patchIncident(p){ await fs.updateDoc(incRef, p); },
-    async clearIncident(){ await fs.setDoc(incRef, { status:'closed' }, { merge:true }); },
+    async clearIncident(){ await fs.setDoc(incRef, { status:'closed' }, { merge:true }); state.memberTasks=null; },
     async setResponder(e,d){ await fs.setDoc(fs.doc(respCol, e), d); },
     async setTask(id,d){ await fs.setDoc(fs.doc(taskCol, id), d); },
     async delTask(id){ await fs.deleteDoc(fs.doc(taskCol, id)); },
+    // memberTasks 개별 임무 토글 (Firestore 배열 내 특정 인덱스 done 반전)
+    async toggleMemberTask(empNo, idx){
+      const ref = fs.doc(mtCol, empNo);
+      const snap = await fs.getDoc(ref);
+      if (!snap.exists()) return;
+      const d = snap.data();
+      const tasks = d.tasks.map((t,i) => i!==idx ? t : { ...t, done:!t.done, doneAt:t.done?null:Date.now(), doneBy:empNo });
+      const doneCount = tasks.filter(t=>t.done).length;
+      await fs.updateDoc(ref, { tasks, doneCount });
+    },
   };
 }
 
@@ -194,9 +232,12 @@ function login(empNo, name){
   if (!r) return alert('사번을 선택하세요.');
   state.user = { empNo:r.empNo, name:r.name, team:r.team, role:r.role };
   state.view = (r.role === '지휘자' || r.role === '부지휘') ? 'cmd' : 'responder';
-  unlockAudio();   // 로그인 탭(사용자 제스처) 시 오디오 활성화 → 이후 사이렌 재생 가능
+  unlockAudio();
   sessionSave(); render();
-  if (BK && BK.mode === 'firebase') enablePush(false);
+  if (BK && BK.mode === 'firebase'){
+    BK.subscribeMemberTasks(r.empNo);  // 개인 임무 실시간 구독 시작
+    enablePush(false);
+  }
 }
 
 // 알림 권한 상태
@@ -225,8 +266,14 @@ async function enablePush(interactive){
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const token = await F.getToken(F.messaging, { vapidKey: window.FIREBASE_CONFIG.vapidKey, serviceWorkerRegistration: reg });
     if (!token || !state.user) return;
+    // fcmTokens 컬렉션 (레거시 호환 유지)
     await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
       { empNo:state.user.empNo, name:state.user.name, team:state.user.team, updatedAt:Date.now() });
+    // roster/{empNo}.fcmTokens 배열에도 등록 → Cloud Function이 여기서 읽음
+    try {
+      await F.fs.updateDoc(F.fs.doc(F.db, 'roster', state.user.empNo),
+        { fcmTokens: F.fs.arrayUnion(token), lastSeen: Date.now() });
+    } catch(e){ console.warn('roster FCM 등록 실패(문서 없음):', e.message); }
     F.onMessage(F.messaging, (payload) => {
       const n = payload.notification || {};
       try { new Notification(n.title || '발령', { body: n.body || '' }); } catch(e){}
@@ -333,10 +380,19 @@ function escalate(){
 function closeIncident(){ if (!confirm('상황을 종료할까요?')) return; speechSynthesis.cancel(); logEvent('close','상황 종료'); BK.clearIncident(); }
 function setMyStatus(s){ if (!state.incident) return; logEvent('status', `출동상태 → ${s}`); BK.setResponder(state.user.empNo, { empNo:state.user.empNo, name:state.user.name, team:state.user.team, role:state.user.role, status:s, updatedAt:Date.now() }); }
 function toggleTask(team, i){
+  // Firebase 모드 + memberTasks 배분된 경우 → Firestore memberTasks 토글
+  if (BK && BK.mode === 'firebase' && state.memberTasks) {
+    const lbl = (state.memberTasks.tasks[i]||{}).label || '';
+    logEvent('task', (state.memberTasks.tasks[i]||{}).done ? '취소: '+lbl : '완료: '+lbl);
+    BK.toggleMemberTask(state.user.empNo, i);
+    return;
+  }
+  // 데모 모드 또는 memberTasks 미배분 → 기존 방식
   const id = team + '-' + i;
   const lbl = (dTasks()[team]||[])[i] || '';
   if (state.tasks[id] && state.tasks[id].done){ logEvent('task','취소: '+lbl); BK.delTask(id); }
   else { logEvent('task','완료: '+lbl); BK.setTask(id, { team, idx:i, label:lbl, done:true, by:state.user.empNo, byName:state.user.name, at:Date.now() }); }
+  if (BK.syncMemberTasks) BK.syncMemberTasks();   // 데모 모드 memberTasks 동기화
 }
 
 // ════════════════ 집계 ════════════════
@@ -400,9 +456,62 @@ function renderResponder(){
   } else {
     const D = DISASTERS[inc.disaster]; const m = D.modes[inc.mode]; const st = myStatus();
     const stBtn = ['미응답','출동중','현장','복귀'].map(s => `<button onclick="setMyStatus('${s}')" style="${st===s?`background:${STATUS_COLOR[s]};color:#fff;`:''}">${s}</button>`).join('');
-    const tasks = (D.tasks[state.user.team]||[]).map((t,i) => { const ok=!!state.tasks[state.user.team+'-'+i];
-      return `<div class="task" onclick="toggleTask('${state.user.team}',${i})"><div class="check" style="${ok?`background:${TEAM_COLOR[state.user.team]};border-color:${TEAM_COLOR[state.user.team]};`:''}">${ok?'✓':''}</div><span style="${ok?'color:#94a3b8;text-decoration:line-through;':''}">${esc(t)}</span></div>`; }).join('');
     const inScope = inc.targetTeams.includes(state.user.team);
+
+    // ── 임무 카드: memberTasks(Firestore 배분) 우선, 없으면 하드코딩 폴백 ──
+    let taskCard = '';
+    if (BK.syncMemberTasks) BK.syncMemberTasks();   // 데모: 매 렌더마다 동기화
+    const mt = state.memberTasks;
+    if (mt && mt.tasks && mt.tasks.length) {
+      // Firestore에서 배분된 역할별 임무
+      const pct = Math.round((mt.doneCount||0) / (mt.taskCount||1) * 100);
+      const barColor = pct>=80?'#16a34a':pct>=50?'#185FA5':'#BA7517';
+      const roleBadge = `<span class="chip" style="background:${m.color}22;color:${m.color};margin-bottom:8px;display:inline-block;">${esc(mt.roleLabel||mt.group||'')}</span>`;
+      const taskItems = mt.tasks.map((t,i) =>
+        `<div class="task" onclick="toggleTask('${state.user.team}',${i})">
+          <div class="check" style="${t.done?`background:${m.color};border-color:${m.color};`:''}">
+            ${t.done?'✓':''}
+          </div>
+          <div style="flex:1;">
+            <span style="${t.done?'color:#94a3b8;text-decoration:line-through;':''}">${esc(t.label)}</span>
+            ${t.done&&t.doneAt?`<div style="font-size:10px;color:#94a3b8;margin-top:2px;">${time(t.doneAt)} 완료</div>`:''}
+          </div>
+          <span style="font-size:11px;color:#94a3b8;">${i+1}</span>
+        </div>`
+      ).join('');
+      taskCard = `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <h3 style="margin:0;">📋 내 임무</h3>
+          <span class="chip" style="background:#f0fdf4;color:#15803d;">${pct}% (${mt.doneCount||0}/${mt.taskCount})</span>
+        </div>
+        ${roleBadge}
+        <div class="bar" style="margin-bottom:10px;"><div style="width:${pct}%;background:${barColor};height:100%;border-radius:4px;transition:width .3s;"></div></div>
+        ${taskItems}
+      </div>`;
+    } else if (inScope) {
+      // 폴백: 하드코딩 임무 (데모 또는 Cloud Function 미실행 시)
+      const fallbackTasks = (D.tasks[state.user.team]||[]).map((t,i) => {
+        const ok=!!state.tasks[state.user.team+'-'+i];
+        return `<div class="task" onclick="toggleTask('${state.user.team}',${i})">
+          <div class="check" style="${ok?`background:${TEAM_COLOR[state.user.team]};border-color:${TEAM_COLOR[state.user.team]};`:''}">
+            ${ok?'✓':''}
+          </div>
+          <span style="${ok?'color:#94a3b8;text-decoration:line-through;':''}">${esc(t)}</span>
+        </div>`;
+      }).join('');
+      const fp = teamTaskPct(state.user.team);
+      taskCard = `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <h3 style="margin:0;">내 임무 · ${esc(state.user.team)}</h3>
+          <span class="chip" style="background:#f0fdf4;color:#15803d;">${fp}%</span>
+        </div>${fallbackTasks}</div>`;
+    } else {
+      taskCard = `<div class="card" style="text-align:center;padding:18px;color:#64748b;">
+        ⏳ 임무 배분 대기 중…<br>
+        <span class="muted" style="font-size:12px;">이번 ${inc.mode} 상황은 <b>${inc.targetTeams.join('·')}</b> 대상입니다.</span>
+      </div>`;
+    }
+
     body = `
     <div class="banner" style="background:${m.color};"><div style="display:flex;align-items:center;gap:8px;"><div style="font-size:22px;">${D.icon}</div>
       <div style="flex:1;"><div style="font-weight:800;">${esc(D.label)} 발령 <span class="chip" style="background:#fff;color:${m.color};">${inc.mode}</span></div>
@@ -410,9 +519,8 @@ function renderResponder(){
       <div style="font-size:12px;margin-top:8px;opacity:.95;">${m.desc}</div></div>
     ${inScope ? `
     <div class="card"><label>내 출동 체크</label><div class="seg">${stBtn}</div></div>
-    <div class="card"><label style="color:${m.color};">🧰 ${esc(D.label)} 비상장구 착용</label><div>${D.equip.map(e=>`<span class="chip" style="background:${m.color}1a;color:${m.color};margin:3px 4px 0 0;">${e}</span>`).join('')}</div></div>
-    <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><h3 style="margin:0;">내 임무 · ${esc(state.user.team)}</h3><span class="chip" style="background:#f0fdf4;color:#15803d;">${teamTaskPct(state.user.team)}%</span></div>${tasks}</div>`
-    : `<div class="card" style="text-align:center;color:#64748b;">이번 ${inc.mode} 상황은 <b>${inc.targetTeams.join('·')}</b> 대상입니다. 대기해 주세요.</div>`}`;
+    <div class="card"><label style="color:${m.color};">🧰 비상장구 착용 확인</label><div>${D.equip.map(e=>`<span class="chip" style="background:${m.color}1a;color:${m.color};margin:3px 4px 0 0;">${e}</span>`).join('')}</div></div>
+    ${taskCard}` : taskCard}`;
   }
   el.innerHTML = topbar(false) + `<div class="content">${pushBanner()}${body}</div>`;
 }

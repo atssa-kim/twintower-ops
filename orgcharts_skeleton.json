@@ -1,0 +1,921 @@
+{
+  "version": "2026-06-13",
+  "generatedAt": "2026-06-20T02:54:21Z",
+  "note": "assignees[] 에 실제 사번(empNo)과 이름(name)을 입력 후 upload_orgcharts.py 실행",
+  "disasters": {
+    "화재": {
+      "type": "화재",
+      "label": "🔥 화재",
+      "color": "#dc2626",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/총괄",
+              "roleLabel": "🎖️ 총괄자 (센터장)",
+              "badge": "총괄",
+              "depts": "-",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지휘/통제",
+              "roleLabel": "🚒 소방안전관리자 (소방파트장)",
+              "badge": "통제",
+              "depts": "소방파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "연락반",
+          "roles": [
+            {
+              "roleKey": "연락반/상황",
+              "roleLabel": "📻 상황실 (통보연락)",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/출동",
+              "roleLabel": "💥 비상출동조 (전기/소방파트)",
+              "badge": "출동",
+              "depts": "전기파트/소방파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/소화",
+              "roleLabel": "🧯 소화조 (기계파트)",
+              "badge": "소화",
+              "depts": "기계파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/구조",
+              "roleLabel": "🧯 인명구조조 (보안파트)",
+              "badge": "구조",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "유도반",
+          "roles": [
+            {
+              "roleKey": "유도반/유도",
+              "roleLabel": "🚶 유도조 (운영/보안/주차)",
+              "badge": "유도",
+              "depts": "운영파트/보안파트/주차파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "유도반/경계",
+              "roleLabel": "🔒 경계조 : 보안2",
+              "badge": "경계",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "복구반",
+          "roles": [
+            {
+              "roleKey": "복구반/복구",
+              "roleLabel": "🔧 복구조 : 미화,시설",
+              "badge": "복구",
+              "depts": "미화파트/시설",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "scenarioKeys": [
+        "kitchen",
+        "electrical",
+        "ups",
+        "parking"
+      ],
+      "note": "시나리오별 조직도는 기본 화재와 동일 인원이므로 별도 orgCharts 문서는 선택 사항입니다."
+    },
+    "정전": {
+      "type": "정전",
+      "label": "⚡ 정전",
+      "color": "#78350f",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/총괄",
+              "roleLabel": "🏢 총괄관리자 (센터장)",
+              "badge": "총괄",
+              "depts": "-",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "연락",
+          "roles": [
+            {
+              "roleKey": "연락/상황",
+              "roleLabel": "📻 상황실 (조장)",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/통제",
+              "roleLabel": "⚙️ 통제자 (전기파트장)",
+              "badge": "통제",
+              "depts": "전기파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응",
+              "roleLabel": "⚙️ 대응조 (전기파트)",
+              "badge": "대응",
+              "depts": "전기파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/지원",
+              "roleLabel": "🔧 지원조 (소방,기계)",
+              "badge": "지원",
+              "depts": "소방파트/기계파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/지원",
+              "roleLabel": "🚶 유도·지원반 (운영·보안파트)",
+              "badge": "지원",
+              "depts": "소방파트/기계파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "홍수": {
+      "type": "홍수",
+      "label": "💧 누수·침수",
+      "color": "#1d4ed8",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "총괄관리자",
+          "roles": [
+            {
+              "roleKey": "총괄관리자/총괄",
+              "roleLabel": "🏢 총괄관리자 — 센터장",
+              "badge": "총괄",
+              "depts": "-",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "상황실",
+          "roles": [
+            {
+              "roleKey": "상황실/상황",
+              "roleLabel": "📻 상황실 — 당직조장",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/응급",
+              "roleLabel": "⚙️ 응급조 — 기계파트 / 소방파트",
+              "badge": "응급",
+              "depts": "기계파트/소방파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/복구E",
+              "roleLabel": "🔧 복구조(전기) — 전기파트",
+              "badge": "복구E",
+              "depts": "전기파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/복구B",
+              "roleLabel": "🏗️ 복구조(건축) — 건축파트 / 미화파트 / 파트직원 / 협력직원",
+              "badge": "복구B",
+              "depts": "건축파트/미화파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대피반",
+          "roles": [
+            {
+              "roleKey": "대피반/유도",
+              "roleLabel": "🚶 유도조 — 보안파트 / 협력직원",
+              "badge": "유도",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대피반/보안",
+              "roleLabel": "🔒 보안조 — 운영파트장 / 김정수 / 협력직원",
+              "badge": "보안",
+              "depts": "운영파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/의료",
+              "roleLabel": "🏥 의료조 — 보안파트 / 김우현 / 전민규",
+              "badge": "의료",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/관리",
+              "roleLabel": "📋 관리조 — 운영파트 / 이미옥 / 협력직원",
+              "badge": "관리",
+              "depts": "운영파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "태풍": {
+      "type": "태풍",
+      "label": "🌀 풍수해",
+      "color": "#1e40af",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/지휘",
+              "roleLabel": "🏢 총괄관리자 (센터장)",
+              "badge": "지휘",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "상황",
+          "roles": [
+            {
+              "roleKey": "상황/상황",
+              "roleLabel": "🏢 상황실 (조장)",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/통제",
+              "roleLabel": "🌊 통제자 (건축파트장)",
+              "badge": "통제",
+              "depts": "건축파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응",
+              "roleLabel": "🌊 대응조 — 건축·기계·전기·운영",
+              "badge": "대응",
+              "depts": "건축파트/기계파트/전기파트/운영파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/지원",
+              "roleLabel": "🏗️ 지원조 — 미화·보안·주차 (보안실장)",
+              "badge": "지원",
+              "depts": "미화파트/보안파트/주차파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/구조",
+              "roleLabel": "🏥 구조조",
+              "badge": "구조",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "폭설": {
+      "type": "폭설",
+      "label": "❄️ 폭설",
+      "color": "#0369a1",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/지휘",
+              "roleLabel": "🏢 총괄관리자 (센터장)",
+              "badge": "지휘",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/대응1",
+              "roleLabel": "🧹 대응1조 — 운영·소방·건축파트",
+              "badge": "대응1",
+              "depts": "운영파트/소방파트/건축파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응2",
+              "roleLabel": "🚗 대응2조 — 전기·기계·품질파트",
+              "badge": "대응2",
+              "depts": "전기파트/기계파트/품질파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/지원1",
+              "roleLabel": "🔒 지원1조 — 미화협력",
+              "badge": "지원1",
+              "depts": "미화파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/지원2",
+              "roleLabel": "🚧 지원2조 — 보안·주차협력",
+              "badge": "지원2",
+              "depts": "보안파트/주차파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "지진": {
+      "type": "지진",
+      "label": "🌍 지진",
+      "color": "#92400e",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/지휘",
+              "roleLabel": "🏢 총괄관리자 (센터장)",
+              "badge": "지휘",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/대응1",
+              "roleLabel": "⚙️ 대응1조 — 전기·건축파트",
+              "badge": "대응1",
+              "depts": "전기파트/건축파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응2",
+              "roleLabel": "🔧 대응2조 — 기계·미화·주차파트",
+              "badge": "대응2",
+              "depts": "기계파트/미화파트/주차파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대피반",
+          "roles": [
+            {
+              "roleKey": "대피반/대피",
+              "roleLabel": "🚶 대피반 (보안파트)",
+              "badge": "대피",
+              "depts": "보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/구조",
+              "roleLabel": "🏥 지원반 (운영파트)",
+              "badge": "구조",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "가스누출": {
+      "type": "가스누출",
+      "label": "💨 가스누출",
+      "color": "#4d7c0f",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/지휘",
+              "roleLabel": "🏢 총괄자 (센터장)",
+              "badge": "지휘",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "상황",
+          "roles": [
+            {
+              "roleKey": "상황/상황",
+              "roleLabel": "⚙️ 상황실",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/통제",
+              "roleLabel": "⚙️ 통제자 (기계파트장)",
+              "badge": "통제",
+              "depts": "기계파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응",
+              "roleLabel": "⚙️ 대응조 (기계,소방)",
+              "badge": "대응",
+              "depts": "기계파트/소방파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/대피",
+              "roleLabel": "🚶 대피조 (건축·보안파트)",
+              "badge": "대피",
+              "depts": "건축파트/보안파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/응급",
+              "roleLabel": "🏥 구조조(보안)",
+              "badge": "응급",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "승강기": {
+      "type": "승강기",
+      "label": "🛗 승강기갇힘",
+      "color": "#6d28d9",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/상황",
+              "roleLabel": "🏢 상황실 (소방·BMS)",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/통제",
+              "roleLabel": "📋 전기파트장/승강기안전관리자",
+              "badge": "통제",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응",
+              "roleLabel": "⚙️ 대응조 — OTIS 상주·전기파트",
+              "badge": "대응",
+              "depts": "전기파트/OTIS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "테러": {
+      "type": "테러",
+      "label": "🚨 테러·침입",
+      "color": "#be123c",
+      "updatedAt": 1781924061472,
+      "groups": [
+        {
+          "group": "지휘",
+          "roles": [
+            {
+              "roleKey": "지휘/지휘",
+              "roleLabel": "🏢 총괄관리자 (센터장)",
+              "badge": "지휘",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "상황",
+          "roles": [
+            {
+              "roleKey": "상황/상황",
+              "roleLabel": "🏢 상황실 (조장)",
+              "badge": "상황",
+              "depts": "소방파트/BMS",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "대응반",
+          "roles": [
+            {
+              "roleKey": "대응반/통제",
+              "roleLabel": "🔒 통제자(운영파트장)",
+              "badge": "통제",
+              "depts": "운영파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "대응반/대응2",
+              "roleLabel": "🔒 보안2조 (서관보안)",
+              "badge": "대응2",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "group": "지원반",
+          "roles": [
+            {
+              "roleKey": "지원반/구조",
+              "roleLabel": "🏥 응급·지원반 (운영,보안1)",
+              "badge": "구조",
+              "depts": "파트 입력",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            },
+            {
+              "roleKey": "지원반/유도",
+              "roleLabel": "📢 유도조 (소방파트)",
+              "badge": "유도",
+              "depts": "소방파트",
+              "assignees": [
+                {
+                  "empNo": "B-XXXX",
+                  "name": "이름 입력"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
