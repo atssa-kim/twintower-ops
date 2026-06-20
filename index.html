@@ -184,7 +184,9 @@ async function makeFirebaseBackend(cfg){
 async function bootBackend(){
   const cfg = window.FIREBASE_CONFIG;
   if (cfg && cfg.apiKey){
-    try { MODE_LABEL='LIVE'; BK = await makeFirebaseBackend(cfg); BK.start(); render(); }
+    try { MODE_LABEL='LIVE'; BK = await makeFirebaseBackend(cfg); BK.start(); render();
+      if (state.user) enablePush(false);  // 세션 복원 시 토큰 자동 갱신
+    }
     catch(e){ alert('Firebase 연결 실패 → 데모 모드\n' + e.message); MODE_LABEL='DEMO'; BK = DemoBackend; BK.start(); }
   } else { BK = DemoBackend; BK.start(); }
 }
