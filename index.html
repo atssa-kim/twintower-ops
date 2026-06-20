@@ -129,6 +129,9 @@ let MODE_LABEL = 'DEMO';
 
 function sessionSave(){ try{ localStorage.setItem('tt_ops_session', JSON.stringify({ user:state.user, view:state.view, muted:state.muted })); }catch(e){} }
 function sessionLoad(){ try{ const s=JSON.parse(localStorage.getItem('tt_ops_session')); if(s){ state.user=s.user||null; state.view=s.view||'auto'; state.muted=!!s.muted; } }catch(e){} }
+// 로그아웃 후에도 FCM 토큰 갱신에 쓸 기기 소유자 정보 (팀 타겟팅용)
+function saveDeviceOwner(u){ try{ localStorage.setItem('tt_device_owner', JSON.stringify({ empNo:u.empNo, name:u.name, team:u.team })); }catch(e){} }
+function loadDeviceOwner(){ try{ return JSON.parse(localStorage.getItem('tt_device_owner')); }catch(e){ return null; } }
 function logEvent(action, detail){ state.log.unshift({ ts:Date.now(), actor: state.user?state.user.empNo:'-', action, detail }); if(state.log.length>200) state.log.pop(); }
 
 // ──────────── 데모 백엔드 (localStorage) ────────────
@@ -185,7 +188,7 @@ async function bootBackend(){
   const cfg = window.FIREBASE_CONFIG;
   if (cfg && cfg.apiKey){
     try { MODE_LABEL='LIVE'; BK = await makeFirebaseBackend(cfg); BK.start(); render();
-      if (state.user) enablePush(false);  // 세션 복원 시 토큰 자동 갱신
+      enablePush(false);  // 로그인 여부 무관하게 토큰 자동 갱신 (기기 소유자 정보 활용)
     }
     catch(e){ alert('Firebase 연결 실패 → 데모 모드\n' + e.message); MODE_LABEL='DEMO'; BK = DemoBackend; BK.start(); }
   } else { BK = DemoBackend; BK.start(); }
@@ -227,9 +230,10 @@ async function enablePush(interactive){
     if (perm !== 'granted') return;
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
     const token = await F.getToken(F.messaging, { vapidKey: window.FIREBASE_CONFIG.vapidKey, serviceWorkerRegistration: reg });
-    if (!token || !state.user) return;
+    const owner = state.user || loadDeviceOwner();
+    if (!token || !owner) return;
     await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
-      { empNo:state.user.empNo, name:state.user.name, team:state.user.team, updatedAt:Date.now() });
+      { empNo:owner.empNo, name:owner.name, team:owner.team, updatedAt:Date.now() });
     F.onMessage(F.messaging, (payload) => {
       const n = payload.notification || {};
       try { new Notification(n.title || '발령', { body: n.body || '' }); } catch(e){}
@@ -311,7 +315,7 @@ function maybeAlarm(){
   announce(inc);
 }
 function toggleMute(){ state.muted = !state.muted; if(state.muted) speechSynthesis.cancel(); sessionSave(); render(); if(!state.muted) unlockAudio(); }
-function logout(){ state.user = null; sessionSave(); render(); }
+function logout(){ if(state.user) saveDeviceOwner(state.user); state.user = null; sessionSave(); render(); }
 function setView(v){ state.view = v; sessionSave(); render(); }
 
 function declareIncident(disaster, mode, location){
