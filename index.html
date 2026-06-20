@@ -228,16 +228,19 @@ async function enablePush(interactive){
     if (perm === 'default') perm = await Notification.requestPermission();
     if (perm === 'denied'){ if(interactive) alert('알림이 차단돼 있습니다.\n브라우저 주소창 옆 자물쇠/사이트 설정에서 "알림"을 허용으로 바꿔주세요.'); return; }
     if (perm !== 'granted') return;
+    // SW 등록 + 포그라운드 핸들러 — 로그인 여부 무관, 항상 실행
     const reg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
-    const token = await F.getToken(F.messaging, { vapidKey: window.FIREBASE_CONFIG.vapidKey, serviceWorkerRegistration: reg });
-    const owner = state.user || loadDeviceOwner();
-    if (!token || !owner) return;
-    await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
-      { empNo:owner.empNo, name:owner.name, team:owner.team, updatedAt:Date.now() });
     F.onMessage(F.messaging, (payload) => {
       const n = payload.notification || {};
       try { new Notification(n.title || '발령', { body: n.body || '' }); } catch(e){}
     });
+    // 토큰 → Firestore 저장은 owner(팀 정보) 있을 때만
+    const owner = state.user || loadDeviceOwner();
+    if (!owner) return;
+    const token = await F.getToken(F.messaging, { vapidKey: window.FIREBASE_CONFIG.vapidKey, serviceWorkerRegistration: reg });
+    if (!token) return;
+    await F.fs.setDoc(F.fs.doc(F.db, 'fcmTokens', token),
+      { empNo:owner.empNo, name:owner.name, team:owner.team, updatedAt:Date.now() });
     console.log('FCM 토큰 등록 완료:', token.slice(0,12) + '...');
     if (interactive) alert('✅ 알림이 켜졌습니다. 이제 발령 시 푸시를 받습니다.');
     render();
