@@ -442,6 +442,7 @@ function renderCommand(){
   const dispatched = tr.filter(r => { const s=state.responders[r.empNo]; return s && s.status!=='미응답'; }).length;
   const onScene = tr.filter(r => { const s=state.responders[r.empNo]; return s && s.status==='현장'; }).length;
   const totalPct = (() => { let d=0,t=0; inc.targetTeams.forEach(tm=>{(D.tasks[tm]||[]).forEach((_,i)=>{t++; if(state.tasks[tm+'-'+i])d++;});}); return t?Math.round(d/t*100):0; })();
+  const dispatchPct = tr.length ? Math.round(dispatched / tr.length * 100) : 0;
   const teamBars = inc.targetTeams.filter(t=>D.tasks[t]).map(t => { const p=teamTaskPct(t);
     return `<div style="margin-bottom:9px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span>${t}</span><span class="muted">${p}%</span></div><div class="bar"><div style="width:${p}%;background:${p>=80?'#16a34a':p>=50?'#185FA5':'#BA7517'};"></div></div></div>`; }).join('');
   const roster = tr.map(r => { const s=(state.responders[r.empNo]||{}).status||'미응답';
@@ -452,12 +453,22 @@ function renderCommand(){
       <div style="font-size:12px;opacity:.9;margin-top:2px;">${esc(inc.location)} · 발령 ${time(inc.declaredAt)}</div></div>
       <button onclick="closeIncident()" style="border:none;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:800;padding:11px 24px;border-radius:9px;cursor:pointer;font-family:inherit;white-space:nowrap;">상황 종료</button>
       </div></div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <div class="metric"><div class="muted">출동</div><div class="v">${dispatched}<span class="muted" style="font-size:12px;">/${tr.length}</span></div></div>
-      <div class="metric"><div class="muted">현장</div><div class="v" style="color:#185FA5;">${onScene}</div></div>
-      <div class="metric"><div class="muted">임무율</div><div class="v" style="color:#16a34a;">${totalPct}%</div></div></div>
     ${(escalateMode() && inc.mode!==escalateMode()) ? `<button class="btn btn-red" style="background:${D.color};margin-bottom:12px;" onclick="escalate()">⚠️ ${escalateMode()}(으)로 승격 (전원 재출동)</button>` : ''}
-    <div class="card"><h3>조별 임무율</h3>${teamBars||'<div class="muted">대상 조 없음</div>'}</div>
+    <div class="card" style="margin-bottom:12px;">
+      <label style="color:#0C447C;margin-bottom:8px;">출동 현황</label>
+      <div style="display:flex;gap:8px;">
+        <div class="metric"><div class="muted">출동율</div><div class="v" style="color:#0C447C;">${dispatchPct}%</div><div class="muted" style="font-size:11px;margin-top:2px;">${dispatched}/${tr.length}명</div></div>
+        <div class="metric"><div class="muted">현장</div><div class="v" style="color:#185FA5;">${onScene}<span class="muted" style="font-size:12px;">명</span></div></div>
+        <div class="metric"><div class="muted">미응답</div><div class="v" style="color:#94a3b8;">${tr.length - dispatched}<span class="muted" style="font-size:12px;">명</span></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <label style="color:#16a34a;margin-bottom:8px;">임무 현황</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div class="metric"><div class="muted">전체 임무율</div><div class="v" style="color:#16a34a;">${totalPct}%</div></div>
+      </div>
+      ${teamBars||'<div class="muted">대상 조 없음</div>'}
+    </div>
     <div class="card"><h3>출동 인원 체크 (${inc.mode})</h3>${roster}</div>`;
   el.innerHTML = topbar(true) + `<div class="content">${pushBanner()}${body}</div>`;
 }
