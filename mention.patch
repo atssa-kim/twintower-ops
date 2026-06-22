@@ -1,0 +1,76 @@
+From e08006cfe71bcb0dc2f461917962e015fd034d1a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 16 Jun 2026 06:56:29 +0000
+Subject: [PATCH] =?UTF-8?q?=EC=9E=AC=EB=82=9C=EB=B3=84=20=EC=B6=9C?=
+ =?UTF-8?q?=EB=8F=99=20=EC=9D=8C=EC=84=B1=EB=A9=98=ED=8A=B8=20=EB=8F=99?=
+ =?UTF-8?q?=EC=A0=81=ED=99=94=20(=EC=A1=B0=EC=A7=81=C2=B7=EC=9C=84?=
+ =?UTF-8?q?=EC=B9=98=20=ED=8F=AC=ED=95=A8)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- DISASTERS의 mention을 함수형으로 변경해 재난(화재/누수/정전)별로
+  '해당 OO 알람은 OO발생, OO발생. OO조직은 신속하게 출동! OO에서 OO발생으로'
+  형식의 멘트를 생성
+- announce()에서 출동 대상 조직(targetTeams)과 위치를 멘트에 주입
+- 위치를 별도로 덧붙이던 중복 로직 제거(함수형 멘트에 포함)
+- 훈련 모드는 '훈련 상황.' 접두로 실제 발령과 구분
+- 구버전 문자열 멘트도 하위호환 유지
+---
+ index.html | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/index.html b/index.html
+index 7a1ea4d..f829ad8 100644
+--- a/index.html
++++ b/index.html
+@@ -69,7 +69,7 @@ const ALL_TEAMS = ['지휘반','대응반','유도반','상황실','지원반'];
+ const DISASTERS = {
+   fire: {
+     label:'🔥 화재', icon:'🔥', color:'#A32D2D',
+-    mention:'화재 발생! 화재 발생, 신속 출동 바랍니다.',
++    mention:(c)=>`해당 화재 알람은 화재 발생, 화재 발생. ${c.teams} 신속하게 출동! ${c.location}에서 화재 발생으로 즉시 대응 바랍니다.`,
+     equip:['방독면','무전기','안전모','랜턴','손전등'],
+     modes:{
+       '훈련':  { color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+@@ -86,7 +86,7 @@ const DISASTERS = {
+   },
+   leak: {
+     label:'💧 누수·침수', icon:'💧', color:'#1d4ed8',
+-    mention:'누수 침수 발생! 누수 발생, 신속 출동 바랍니다.',
++    mention:(c)=>`해당 누수 알람은 누수 발생, 침수 발생. ${c.teams} 신속하게 출동! ${c.location}에서 누수·침수 발생으로 즉시 대응 바랍니다.`,
+     equip:['무전기','랜턴','마스터키','사다리','보양비닐','수중펌프','흡수기','밀대','들것·AED'],
+     modes:{
+       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+@@ -103,7 +103,7 @@ const DISASTERS = {
+   },
+   power: {
+     label:'⚡ 정전', icon:'⚡', color:'#78350f',
+-    mention:'정전 발생! 정전 발생, 신속 출동 바랍니다.',
++    mention:(c)=>`해당 정전 알람은 정전 발생, 정전 발생. ${c.teams} 신속하게 출동! ${c.location}에서 정전 발생으로 즉시 대응 바랍니다.`,
+     equip:['무전기','랜턴','손전등','절연장갑','검전기','비상키'],
+     modes:{
+       '훈련':{ color:'#185FA5', scope:'drill',   teams:ALL_TEAMS,  desc:'연습 출동 (기록 별도 보관)', emoji:'🎓' },
+@@ -279,8 +279,17 @@ function speakMention(text){
+ }
+ function announce(inc){
+   const D = DISASTERS[inc.disaster];
+-  const ment = D.mention || (D.label + ' 발생, 신속 출동 바랍니다.');
+-  speakMention(ment + ' 위치는 ' + inc.location + ' 입니다.');
++  // 출동 대상 조직(팀) — 모든 팀명이 받침으로 끝나 '은' 조사 사용
++  const teams = (inc.targetTeams && inc.targetTeams.length)
++    ? inc.targetTeams.join(', ') + '은'
++    : '전 조직은';
++  const ctx = { location: inc.location, teams, mode: inc.mode };
++  // 재난별 멘트(함수) → 위치·조직 포함. 구버전 문자열 멘트도 호환.
++  let ment = (typeof D.mention === 'function')
++    ? D.mention(ctx)
++    : (D.mention || (D.label + ' 발생, 신속 출동 바랍니다.')) + ' 위치는 ' + inc.location + ' 입니다.';
++  if (inc.mode === '훈련') ment = '훈련 상황. ' + ment;   // 훈련 발령은 실제 상황과 구분
++  speakMention(ment);
+   if (navigator.vibrate) navigator.vibrate([400,200,400,200,400]);
+ }
+ function maybeAlarm(){
+-- 
+2.43.0
+
